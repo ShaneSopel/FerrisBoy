@@ -21,17 +21,17 @@ pub const OPCODES: [Opcode; 256] =
     Opcode { mnemonic: "INC", bytes: 1,    immediate: true, execute: inc_bc }, // 0x03
     Opcode { mnemonic: "INC", bytes: 1,    immediate: true, execute: inc_b }, // 0x04
     Opcode { mnemonic: "DEC", bytes: 1,    immediate: true, execute: dec_b}, // 0x05
-    Opcode { mnemonic: "LD", bytes: 2,     immediate: true, execute: rcla }, // 0x06
-    Opcode { mnemonic: "RLCA", bytes: 1,   immediate: true, execute: ld_a16_sp}, // 0x07
-    Opcode { mnemonic: "LD", bytes: 3,     immediate: false, execute: add_hl_bc }, // 0x08
-    Opcode { mnemonic: "ADD", bytes: 1,    immediate: true, execute: ld_a_bc }, // 0x09
-    Opcode { mnemonic: "LD", bytes: 1,     immediate: false, execute: undefined }, // 0x0A
-    Opcode { mnemonic: "DEC", bytes: 1,    immediate: true, execute: undefined }, // 0x0B
-    Opcode { mnemonic: "INC", bytes: 1,    immediate: true, execute: undefined }, // 0x0C
-    Opcode { mnemonic: "DEC", bytes: 1,    immediate: true, execute: undefined }, // 0x0D
-    Opcode {mnemonic: "LD", bytes: 2,      immediate: true, execute: ld_c_n8}, // 0x0E
-    Opcode { mnemonic: "RRCA", bytes: 1,   immediate: true, execute: undefined }, // 0x0F
-    Opcode { mnemonic: "STOP", bytes: 2,   immediate: true, execute: undefined }, // 0x10
+    Opcode { mnemonic: "LD", bytes: 2,     immediate: true, execute: ld_b_d8 }, // 0x06
+    Opcode { mnemonic: "RLCA", bytes: 1,   immediate: true, execute: rcla}, // 0x07
+    Opcode { mnemonic: "LD", bytes: 3,     immediate: false, execute: ld_a16_sp }, // 0x08
+    Opcode { mnemonic: "ADD", bytes: 1,    immediate: true, execute: add_hl_bc }, // 0x09
+    Opcode { mnemonic: "LD", bytes: 1,     immediate: false, execute:  ld_a_bc }, // 0x0A
+    Opcode { mnemonic: "DEC", bytes: 1,    immediate: true, execute: dec_bc }, // 0x0B
+    Opcode { mnemonic: "INC", bytes: 1,    immediate: true, execute: inc_c }, // 0x0C
+    Opcode { mnemonic: "DEC", bytes: 1,    immediate: true, execute: dec_c }, // 0x0D
+    Opcode {mnemonic: "LD", bytes: 2,      immediate: true, execute: ld_c_d8}, // 0x0E
+    Opcode { mnemonic: "RRCA", bytes: 1,   immediate: true, execute: rrca }, // 0x0F
+    Opcode { mnemonic: "STOP", bytes: 2,   immediate: true, execute: stop }, // 0x10
     Opcode { mnemonic: "LD", bytes: 3,     immediate: true, execute: undefined }, // 0x11
     Opcode { mnemonic: "LD", bytes: 1,     immediate: false, execute: undefined }, // 0x12
     Opcode { mnemonic: "INC", bytes: 1,    immediate: true, execute: undefined }, // 0x13
@@ -720,13 +720,14 @@ pub fn rcla(cpu: &mut Cpu) -> u8
     let msb = cpu.get_register_8('A') >> 7 & 0x01;
     let a = cpu.get_register_8('A');
 
+    //I need to check this flag, I am not sure if I set it right.
     cpu.set_flags('C', msb == 1);
 
     cpu.set_flags('H', false);
 
     cpu.set_flags('Z', false);
 
-    cpu.set_flags('C', false);
+    cpu.set_flags('N', false);
 
     cpu.set_register_8( a << 1 | msb, 'A');
 
@@ -772,18 +773,91 @@ pub fn ld_a_bc(cpu: &mut Cpu) -> u8
     let a = cpu.get_register_8('A');
     let bc = cpu.get_register_16("BC");
 
-    
+    8
+}
+
+//0x0B
+
+pub fn dec_bc(cpu: &mut Cpu) -> u8
+{
+    let mut bc = cpu.get_register_16("BC");
+
+    bc = bc.wrapping_sub(1);
+    cpu.set_register_16(bc, "BC");
 
     8
 }
 
-//0x0E
-pub fn ld_c_n8(cpu: &mut Cpu) -> u8
+//0x0C
+pub fn inc_c(cpu: &mut Cpu) -> u8
 {
-    let v = next_byte(cpu);
+    let c = cpu.get_register_8('C');
+
+    cpu.set_flags('H', (c & 0x0f) + 1 > 0x0f);
+
+    cpu.set_register_8(c.wrapping_add(1), 'C');
+
+    cpu.set_flags('Z', c == 0);
+    cpu.set_flags('N', false);
+
+    4
+}
+
+//0x0D
+pub fn dec_c(cpu: &mut Cpu) -> u8
+{
+    let c = cpu.get_register_8('C');
+    cpu.set_flags('H', (c & 0x0f) + 1 > 0x0f); 
+
+    cpu.set_register_8(c.wrapping_sub(1), 'C');
+
+    cpu.set_flags('Z', c == 0);
+    cpu.set_flags('N', true);
+
+    4
+}
+
+//0x0E
+pub fn ld_c_d8(cpu: &mut Cpu) -> u8
+{
+    let pc = cpu.get_register_16("PC").wrapping_add(1);
+    cpu.set_register_16(pc, "PC");
+
+    let v = read_u8_from_pc(cpu);
     cpu.set_register_8(v, 'C');
 
     8
+}
+
+//0x0F
+pub fn rrca(cpu: &mut Cpu) -> u8
+{
+    let lsb = cpu.get_register_8('A') & 0x01;
+    let a = cpu.get_register_8('A');
+
+    //I need to check this flag, I am not sure if I set it right.
+    cpu.set_flags('C', lsb == 1);
+    cpu.set_flags('Z', false);
+    cpu.set_flags('N', false);
+    cpu.set_flags('H', false);
+
+    cpu.set_register_8( (a >> 1) | (lsb << 7), 'A');
+
+    4
+}
+
+//0x10
+fn stop(cpu: &mut Cpu) -> u8
+{
+    //stop
+    4
+}
+
+//0x11
+fn ld_de_d16(cpu: &mut Cpu) -> u8
+{
+
+    12
 }
 
 
@@ -1003,17 +1077,107 @@ mod tests
         let cycles = add_hl_bc(&mut cpu);
 
         assert_eq!(cycles, 0x08);
-        assert_eq!(0x2182, cpu.get_register_16("HL"));
+        assert_eq!(cpu.get_register_16("HL"), 0x2182);
     }
 
     //0x0A
     #[test]
-    fn ld_a_bc()
+    fn test_ld_a_bc()
     {
         let memory: Vec<u8> = vec![0; 0x10000];
         let interconnect = Interconnect::new(memory);
         let mut cpu = Cpu::new(interconnect);
 
+    }
+
+    //0x0B
+    #[test]
+    fn test_dec_bc()
+    {
+        let memory: Vec<u8> = vec![0; 0x10000];
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_register_16(0x22, "BC");
+
+        let cycles = dec_bc(&mut cpu);
+
+        assert_eq!(cycles, 8);
+        assert_eq!(cpu.get_register_16("BC"), 0x21);
+    }
+
+    #[test]
+    fn test_inc_c()
+    {
+        let memory: Vec<u8> = vec![0; 0x10000];
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_register_8(0x34, 'C');
+
+        let cycles = inc_c(&mut cpu);
+
+        assert_eq!(cycles, 4);
+        assert_eq!(cpu.get_flags('N'), false);
+        assert_eq!(cpu.get_flags('Z'), false);
+        assert_eq!(cpu.get_flags('H'), false);
+        assert_eq!(cpu.get_register_8('C'), 0x35);
+
+    }
+
+    #[test]
+    fn test_dec_c()
+    {
+        let memory: Vec<u8> = vec![0; 0x10000];
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_register_8(0x25, 'C');
+
+        let cycles = dec_c(&mut cpu);
+
+        assert_eq!(cycles, 4);
+        assert_eq!(cpu.get_flags('N'), true);
+        assert_eq!(cpu.get_flags('Z'), false);
+        assert_eq!(cpu.get_flags('H'), false);
+        assert_eq!(cpu.get_register_8('C'), 0x24);
+
+    }
+
+    #[test]
+    fn test_ld_c_d8()
+    {
+        let mut memory: Vec<u8> = vec![0; 0x10000];
+
+        memory[0x0000] = 0x0E;
+        memory[0x0001] = 0x12;
+
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_register_16(0x0000, "PC");
+
+        let cycles = ld_c_d8(&mut cpu);
+
+        assert_eq!(cycles, 8);
+        assert_eq!(cpu.get_register_16("PC"), 0x0002);
+        assert_eq!(cpu.get_register_8('C'), 0x12);
+
+    }
+
+    #[test]
+    fn test_rrca()
+    {
+        let memory: Vec<u8> = vec![0; 0x10000];
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_register_8(0x12, 'A');
+
+        let cycles = rrca(&mut cpu);
+
+        assert_eq!(cycles, 4);
+        assert_eq!(cpu.get_register_8('A'), 0x09);
     }
 
 

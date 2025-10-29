@@ -402,10 +402,10 @@ impl Cpu
     {
         match flag
         {
-            'h' => self.flags.H = val,
-            'n' => self.flags.N = val,
-            'z' => self.flags.Z = val,
-            'c' => self.flags.C = val,
+            'H' => self.flags.H = val,
+            'N' => self.flags.N = val,
+            'Z' => self.flags.Z = val,
+            'C' => self.flags.C = val,
 
             _ => println!("invald input"),
         }
@@ -416,10 +416,10 @@ impl Cpu
     {
         match flag
         {
-            'h' => self.flags.H,
-            'n' => self.flags.N,
-            'z' => self.flags.Z,
-            'c' => self.flags.C,
+            'H' => self.flags.H,
+            'N' => self.flags.N,
+            'Z' => self.flags.Z,
+            'C' => self.flags.C,
 
             _ => false,
         }

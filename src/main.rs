@@ -9,7 +9,6 @@ use std::env;
 use std::io::Result;
 
 use crate::cart::Cart;
-#[path = "emu.rs"]pub mod emu;
 
 fn main() -> Result<()>
 {

@@ -1394,6 +1394,22 @@ mod tests
         assert_eq!(cpu.get_register_8('D'), 0x23);
     }
 
+    //0x17
+    #[test]
+    fn test_rla()
+    {
+        let memory: Vec<u8> = vec![0; 0x10000];
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_register_8(0x12, 'A');
+
+        let cycles = rla(&mut cpu);
+
+        assert_eq!(cycles, 4);
+        assert_eq!(cpu.get_register_8('A'), 0x24);
+    }
+
 
 
 }

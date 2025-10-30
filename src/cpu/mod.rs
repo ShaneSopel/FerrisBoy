@@ -114,13 +114,13 @@ impl Cpu
         process_instruction(self);
     }
 
-    pub fn next_byte(&mut self) -> u8
-    {
+   // pub fn next_byte(&mut self) -> u8
+   // {
 
-        let b = self.inter.read_byte(self.regs.PC);
-        self.regs.PC = self.regs.PC.wrapping_add(1);
-        b
-    }
+   //     let b = self.inter.read_byte(self.regs.PC);
+   //     self.regs.PC = self.regs.PC.wrapping_add(1);
+   //     b
+   // }
 
     fn fetch_byte(&mut self, val: u16) -> u8
     {

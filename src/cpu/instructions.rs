@@ -32,13 +32,13 @@ pub const OPCODES: [Opcode; 256] =
     Opcode {mnemonic: "LD", bytes: 2,      immediate: true, execute: ld_c_d8}, // 0x0E
     Opcode { mnemonic: "RRCA", bytes: 1,   immediate: true, execute: rrca }, // 0x0F
     Opcode { mnemonic: "STOP", bytes: 2,   immediate: true, execute: stop }, // 0x10
-    Opcode { mnemonic: "LD", bytes: 3,     immediate: true, execute: undefined }, // 0x11
-    Opcode { mnemonic: "LD", bytes: 1,     immediate: false, execute: undefined }, // 0x12
-    Opcode { mnemonic: "INC", bytes: 1,    immediate: true, execute: undefined }, // 0x13
-    Opcode { mnemonic: "INC", bytes: 1,    immediate: true, execute: undefined }, // 0x14
-    Opcode { mnemonic: "DEC", bytes: 1,    immediate: true, execute: undefined }, // 0x15
-    Opcode { mnemonic: "LD", bytes: 2,     immediate: true, execute: undefined }, // 0x16
-    Opcode { mnemonic: "RLA", bytes: 1,    immediate: true, execute: undefined }, // 0x17
+    Opcode { mnemonic: "LD", bytes: 3,     immediate: true, execute: ld_de_d16 }, // 0x11
+    Opcode { mnemonic: "LD", bytes: 1,     immediate: false, execute: ld_de_a }, // 0x12
+    Opcode { mnemonic: "INC", bytes: 1,    immediate: true, execute: inc_de }, // 0x13
+    Opcode { mnemonic: "INC", bytes: 1,    immediate: true, execute: inc_d}, // 0x14
+    Opcode { mnemonic: "DEC", bytes: 1,    immediate: true, execute: dec_d }, // 0x15
+    Opcode { mnemonic: "LD", bytes: 2,     immediate: true, execute: ld_d_d8 }, // 0x16
+    Opcode { mnemonic: "RLA", bytes: 1,    immediate: true, execute: rla }, // 0x17
     Opcode { mnemonic: "JR", bytes: 2,     immediate: true, execute: undefined }, // 0x18
     Opcode { mnemonic: "ADD", bytes: 1,    immediate: true, execute: undefined }, // 0x19
     Opcode { mnemonic: "LD", bytes: 1,     immediate: false, execute: undefined }, // 0x1A
@@ -637,7 +637,6 @@ pub fn nop(cpu: &mut Cpu) -> u8
 pub fn ld_bc_d16(cpu: &mut Cpu) -> u8
 {
     let pc = cpu.get_register_16("PC");
-    
     cpu.set_register_16(pc.wrapping_add(1), "PC");
 
     let bc = read_u16_from_pc(cpu);
@@ -704,11 +703,10 @@ pub fn dec_b(cpu: &mut Cpu) -> u8
 //0x06
 pub fn ld_b_d8(cpu: &mut Cpu) -> u8
 {
-    let pc = cpu.get_register_16("PC").wrapping_add(1);
-    cpu.set_register_16(pc, "PC");
+    let pc = cpu.get_register_16("PC");
+    cpu.set_register_16(pc.wrapping_add(1), "PC");
 
     let val = read_u8_from_pc(cpu);
-
     cpu.set_register_8(val, 'B');
 
     8
@@ -847,19 +845,104 @@ pub fn rrca(cpu: &mut Cpu) -> u8
 }
 
 //0x10
-fn stop(cpu: &mut Cpu) -> u8
+pub fn stop(cpu: &mut Cpu) -> u8
 {
     //stop
     4
 }
 
 //0x11
-fn ld_de_d16(cpu: &mut Cpu) -> u8
+pub fn ld_de_d16(cpu: &mut Cpu) -> u8
 {
+
+    let pc = cpu.get_register_16("PC");
+    cpu.set_register_16(pc.wrapping_add(1), "PC");
+
+    let de = read_u16_from_pc(cpu);
+    cpu.set_register_16(de, "DE");
 
     12
 }
 
+//0x12
+pub fn ld_de_a(cpu: &mut Cpu) -> u8
+{
+    let a = cpu.get_register_8('A');
+    let de = cpu.get_register_16("DE");
+
+    cpu.store_byte(de, a);
+
+    8
+}
+
+//0x13
+pub fn inc_de(cpu: &mut Cpu) -> u8
+{
+    let de = cpu.get_register_16("DE");
+    cpu.set_register_16(de.wrapping_add(1), "DE");
+
+    8
+}
+
+pub fn inc_d(cpu: &mut Cpu) -> u8
+{
+    let d = cpu.get_register_8('D');
+
+    cpu.set_flags('H', (d & 0x0f) + 1 > 0x0f);
+    cpu.set_register_8(d.wrapping_add(1), 'D');
+
+    cpu.set_flags('Z', d == 0);
+    cpu.set_flags('N', false);
+
+    4
+}
+
+//0x15
+pub fn dec_d(cpu: &mut Cpu) -> u8
+{
+    let d = cpu.get_register_8('D');
+    cpu.set_flags('H', (d & 0x0f) + 1 > 0x0f); 
+
+    cpu.set_register_8(d.wrapping_sub(1), 'D');
+
+    cpu.set_flags('Z', d == 0);
+    cpu.set_flags('N', true);
+
+    4
+} 
+
+//0x16
+pub fn ld_d_d8(cpu: &mut Cpu) -> u8
+{
+    let pc = cpu.get_register_16("PC");
+    cpu.set_register_16(pc.wrapping_add(1), "PC");
+
+    let val = read_u8_from_pc(cpu);
+    cpu.set_register_8(val, 'D');
+
+    8
+}
+
+//0x17
+pub fn rla(cpu: &mut Cpu) -> u8
+{
+    let a = cpu.get_register_8('A');
+
+    let old_carry = if cpu.get_flags('C') {1} else {0};
+    let new_carry = cpu.get_register_8('A') >> 7 & 0x01;
+
+    cpu.set_flags('C', new_carry == 1);
+
+    cpu.set_flags('H', false);
+
+    cpu.set_flags('Z', false);
+
+    cpu.set_flags('N', false);
+
+    cpu.set_register_8( a << 1 | old_carry, 'A');
+
+    4
+}
 
 //0xAF
 fn in_xor_a(cpu: &mut Cpu) -> u8
@@ -901,6 +984,9 @@ pub fn undefined(cpu: &mut Cpu) -> u8
     0
 }
 
+
+// Basic set of tests for each opcode.
+// Could optimize tests for each flag when looking into making more efficient.
 #[cfg(test)]
 mod tests
 {
@@ -1106,6 +1192,7 @@ mod tests
         assert_eq!(cpu.get_register_16("BC"), 0x21);
     }
 
+    //0x0C
     #[test]
     fn test_inc_c()
     {
@@ -1125,6 +1212,7 @@ mod tests
 
     }
 
+    //0x0D
     #[test]
     fn test_dec_c()
     {
@@ -1144,6 +1232,7 @@ mod tests
 
     }
 
+    //0x0E
     #[test]
     fn test_ld_c_d8()
     {
@@ -1165,6 +1254,7 @@ mod tests
 
     }
 
+    //0x0F
     #[test]
     fn test_rrca()
     {
@@ -1179,6 +1269,131 @@ mod tests
         assert_eq!(cycles, 4);
         assert_eq!(cpu.get_register_8('A'), 0x09);
     }
+
+    // 0x11
+    #[test]
+    fn test_ld_de_d16()
+    {
+        let mut memory: Vec<u8> = vec![0; 0x10000];
+
+        memory[0x0000] = 0x11;
+        memory[0x0001] = 0x23;
+        memory[0x0002] = 0x12;
+
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_register_16(0x0000, "PC");
+
+        let cycles = ld_de_d16(&mut cpu);
+
+        assert_eq!(cycles, 12);
+        assert_eq!(cpu.get_register_16("PC"), 0x0003);
+        assert_eq!(cpu.get_register_16("DE"), 0x1223);
+    }
+
+    //0x12
+    // I need to write this outloud so I think better.
+    // you have a reg A and you have the 16byte Reg DE.
+    // when you store the reg A in Reg DE what is actaully is doing is storing
+    // Reg A into a memory Address (the one reg DE is set too) and when you look at that memory address,
+    // it will have the value of reg A.
+    #[test]
+    fn test_ld_de_a()
+    {
+        let memory: Vec<u8> = vec![0; 0x10000];
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_register_8(0x42, 'A');
+        cpu.set_register_8(0xC0, 'D');
+        cpu.set_register_8(0x00, 'E');
+
+        let cycles = ld_de_a(&mut cpu);
+
+        assert_eq!(cycles, 8);
+        println!("first test passed");
+
+        assert_eq!(cpu.inter.read_byte(0xC000), 0x42);
+    }
+
+    //0x13
+    #[test]
+    fn test_inc_de()
+    {
+        let memory: Vec<u8> = vec![0; 0x10000];
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_register_16(0x25, "DE");
+
+        let cycles = inc_de(&mut cpu);
+
+        assert_eq!(cycles, 8);
+        assert_eq!(cpu.get_register_16("DE"), 0x26);
+
+    }
+
+    //0x14
+    fn test_inc_d()
+    {
+        let memory: Vec<u8> = vec![0; 0x10000];
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_register_8(0x25, 'D');
+
+        let cycles = inc_d(&mut cpu);
+
+        assert_eq!(cycles, 8);
+        assert_eq!(cpu.get_flags('N'), false);
+        assert_eq!(cpu.get_flags('Z'), false);
+        assert_eq!(cpu.get_flags('H'), false);
+        assert_eq!(cpu.get_register_8('D'), 0x26);
+
+    }
+
+    //0x15
+    #[test]
+    fn test_dec_d()
+    {
+        let memory: Vec<u8> = vec![0; 0x10000];
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_register_8(0x25, 'D');
+
+        let cycles = dec_d(&mut cpu);
+
+        assert_eq!(cycles, 4);
+        assert_eq!(cpu.get_flags('N'), true);
+        assert_eq!(cpu.get_flags('Z'), false);
+        assert_eq!(cpu.get_flags('H'), false);
+        assert_eq!(cpu.get_register_8('D'), 0x24);
+
+    }
+
+    //0x16
+    #[test]
+    fn test_ld_d_d8()
+    {
+        let mut memory: Vec<u8> = vec![0; 0x10000];
+
+        memory[0x0000] = 0x16;
+        memory[0x0001] = 0x23;
+
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_register_16(0x0000, "PC");
+
+        let cycles = ld_d_d8(&mut cpu);
+
+        assert_eq!(cycles, 8);
+        assert_eq!(cpu.get_register_16("PC"), 0x0002);
+        assert_eq!(cpu.get_register_8('D'), 0x23);
+    }
+
 
 
 }

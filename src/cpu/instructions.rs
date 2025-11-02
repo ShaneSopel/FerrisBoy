@@ -39,7 +39,7 @@ pub const OPCODES: [Opcode; 256] =
     Opcode { mnemonic: "DEC", bytes: 1,    immediate: true, execute: dec_d }, // 0x15
     Opcode { mnemonic: "LD", bytes: 2,     immediate: true, execute: ld_d_d8 }, // 0x16
     Opcode { mnemonic: "RLA", bytes: 1,    immediate: true, execute: rla }, // 0x17
-    Opcode { mnemonic: "JR", bytes: 2,     immediate: true, execute: undefined }, // 0x18
+    Opcode { mnemonic: "JR", bytes: 2,     immediate: true, execute: jr_r8 }, // 0x18
     Opcode { mnemonic: "ADD", bytes: 1,    immediate: true, execute: undefined }, // 0x19
     Opcode { mnemonic: "LD", bytes: 1,     immediate: false, execute: undefined }, // 0x1A
     Opcode { mnemonic: "DEC", bytes: 1,    immediate: true, execute: undefined }, // 0x1B
@@ -944,6 +944,18 @@ pub fn rla(cpu: &mut Cpu) -> u8
     4
 }
 
+pub fn jr_r8(cpu: &mut Cpu) -> u8
+{
+    let offset = read_u8_from_pc(cpu) as i8;
+
+    let pc = cpu.get_register_16("PC");
+    let new = pc.wrapping_add(offset as i16 as u16);
+    
+    cpu.set_register_16(new, "PC");
+
+    12
+}
+
 //0xAF
 fn in_xor_a(cpu: &mut Cpu) -> u8
 {
@@ -1408,6 +1420,26 @@ mod tests
 
         assert_eq!(cycles, 4);
         assert_eq!(cpu.get_register_8('A'), 0x24);
+    }
+
+    #[test]
+    fn test_jr_r8()
+    {
+        let mut memory: Vec<u8> = vec![0; 0x10000];
+
+        memory[0x0000] = 0x18;
+        memory[0x0001] = 0x23;
+
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_register_16(0x0001, "PC");
+
+        let cycles = jr_r8(&mut cpu);
+
+        assert_eq!(cycles, 12);
+        assert_eq!(cpu.get_register_16("PC"), 0x0025);
+
     }
 
 

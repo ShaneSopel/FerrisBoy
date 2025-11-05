@@ -56,14 +56,14 @@ pub const OPCODES: [Opcode; 256] =
     Opcode { mnemonic: "LD", bytes: 2,     immediate: true, execute: ld_h_d8 }, // 0x26
     Opcode { mnemonic: "DAA", bytes: 1,    immediate: true, execute: daa }, // 0x27
     Opcode { mnemonic: "JR", bytes: 2,     immediate: true, execute: jr_z_r8 }, // 0x28
-    Opcode { mnemonic: "ADD", bytes: 1,    immediate: true, execute: undefined }, // 0x29
-    Opcode { mnemonic: "LD", bytes: 1,     immediate: false, execute: undefined }, // 0x2A
-    Opcode { mnemonic: "DEC", bytes: 1,    immediate: true, execute: undefined }, // 0x2B
-    Opcode { mnemonic: "INC", bytes: 1,    immediate: true, execute: undefined }, // 0x2C
-    Opcode { mnemonic: "DEC", bytes: 1,    immediate: true, execute: undefined }, // 0x2D
-    Opcode { mnemonic: "LD", bytes: 2,     immediate: true, execute: undefined }, // 0x2E
-    Opcode { mnemonic: "CPL", bytes: 1,    immediate: true, execute: undefined }, // 0x2F
-    Opcode { mnemonic: "JR", bytes: 2,     immediate: true, execute: undefined }, // 0x30
+    Opcode { mnemonic: "ADD", bytes: 1,    immediate: true, execute: add_hl_hl }, // 0x29
+    Opcode { mnemonic: "LD", bytes: 1,     immediate: false, execute: ld_a_hl_inc}, // 0x2A
+    Opcode { mnemonic: "DEC", bytes: 1,    immediate: true, execute: dec_hl }, // 0x2B
+    Opcode { mnemonic: "INC", bytes: 1,    immediate: true, execute: inc_l }, // 0x2C
+    Opcode { mnemonic: "DEC", bytes: 1,    immediate: true, execute: dec_l }, // 0x2D
+    Opcode { mnemonic: "LD", bytes: 2,     immediate: true, execute: ld_l_d8 }, // 0x2E
+    Opcode { mnemonic: "CPL", bytes: 1,    immediate: true, execute: cpl }, // 0x2F
+    Opcode { mnemonic: "JR", bytes: 2,     immediate: true, execute: jr_nc_r8 }, // 0x30
     Opcode { mnemonic: "LD", bytes: 3,     immediate: true, execute: undefined }, // 0x31
     Opcode { mnemonic: "LD", bytes: 1,     immediate: false, execute: undefined }, // 0x32
     Opcode { mnemonic: "INC", bytes: 1,    immediate: true, execute: undefined }, // 0x33
@@ -1205,23 +1205,141 @@ pub fn daa(cpu: &mut Cpu) -> u8
 //0x28
 pub fn jr_z_r8(cpu: &mut Cpu) -> u8
 {
+    let raw = read_u8_from_pc(cpu); // returns u8 and increments PC
+    let offset = raw as i8;
 
-    // Save PC at start of instruction
-    let pc_start = cpu.get_register_16("PC");
+    let pc_after_offset = cpu.get_register_16("PC");
 
-    // Read signed offset; increments PC by 1
-    let offset = read_u8_from_pc(cpu) as i8;
+    if cpu.get_flags('Z') 
+    {
+        // jump taken: add signedw4re4re3r                                                                                                                                                                                                                                                                                                                                       offset to the address *after* operand
 
-    if cpu.get_flags('Z') {
-        // Jump taken: PC = next instruction (after offset byte) + offset
-        let new_pc = cpu.get_register_16("PC").wrapping_add(offset as i16 as u16);
+        let new_pc = pc_after_offset.wrapping_add(offset as i16 as u16);
         cpu.set_register_16(new_pc, "PC");
-        12 // taken
-    } else {
-        // Jump not taken: ensure PC points to next instruction
-        cpu.set_register_16(pc_start.wrapping_add(2), "PC");
-        8 // not taken
+        12
+    } 
+    else 
+    {
+       8
     }
+}
+
+//0x29
+pub fn add_hl_hl(cpu: &mut Cpu) -> u8
+{
+    let hl: u16 = cpu.get_register_16("HL");
+
+    let hl_add = hl.wrapping_add(hl);
+
+    cpu.set_flags('H', (hl & 0x0fff) + (hl & 0xfff) > 0x0fff);
+    cpu.set_flags('C', (hl as u32 + hl as u32) > 0xffff);
+
+    cpu.set_register_16(hl_add , "HL");
+
+    cpu.set_flags('N', false);
+
+    8
+}
+
+//0x2A
+pub fn ld_a_hl_inc(cpu: &mut Cpu) -> u8
+{
+    
+    let hl = cpu.get_register_16("HL");
+    let val = cpu.inter.read_byte(hl);
+
+    cpu.set_register_8(val, 'A');
+    cpu.set_register_16(hl.wrapping_add(1), "HL");
+
+    8    
+}
+
+//0x2B
+pub fn dec_hl(cpu: &mut Cpu) -> u8
+{
+    let mut hl = cpu.get_register_16("HL");
+
+    hl = hl.wrapping_sub(1);
+    cpu.set_register_16(hl, "HL");
+
+    8
+}
+
+//0x2C
+pub fn inc_l(cpu: &mut Cpu) -> u8
+{
+    let l = cpu.get_register_8('L');
+
+    cpu.set_flags('H', (l & 0x0f) + 1 > 0x0f);
+
+    cpu.set_register_8(l.wrapping_add(1), 'L');
+
+    cpu.set_flags('Z', l == 0);
+    cpu.set_flags('N', false);
+
+    4
+}
+
+//0x2D
+pub fn dec_l(cpu: &mut Cpu) -> u8
+{
+    let l = cpu.get_register_8('L');
+    cpu.set_flags('H', (l & 0x0f) + 1 > 0x0f); 
+
+    cpu.set_register_8(l.wrapping_sub(1), 'L');
+
+    cpu.set_flags('Z', l == 0);
+    cpu.set_flags('N', true);
+
+    4
+}
+
+//0x2E
+pub fn ld_l_d8(cpu: &mut Cpu) -> u8
+{
+    let pc = cpu.get_register_16("PC").wrapping_add(1);
+    cpu.set_register_16(pc, "PC");
+
+    let v = read_u8_from_pc(cpu);
+    cpu.set_register_8(v, 'L');
+
+    8
+}
+
+//0x2F
+pub fn cpl(cpu: &mut Cpu) -> u8
+{
+        // Complement the A register
+        let a = cpu.get_register_8('A');
+        let result = !a;
+        cpu.set_register_8(result, 'A');
+    
+        // Set flags: N and H = 1, Z and C unaffected
+        cpu.set_flags('N', true);
+        cpu.set_flags('H', true);
+    
+        4
+}
+
+//0x30
+pub fn jr_nc_r8(cpu: &mut Cpu) -> u8
+{
+      // Read signed offset (this increments PC)
+      let offset = read_u8_from_pc(cpu) as i8;
+      let pc_after_read = cpu.get_register_16("PC");
+  
+      if !cpu.get_flags('C') 
+      {
+          // Jump taken: add signed offset to PC (already incremented)
+          let new_pc = pc_after_read.wrapping_add(offset as i16 as u16);
+          cpu.set_register_16(new_pc, "PC");
+          12
+      } 
+      else 
+      {
+          // Not taken: PC already incremented past offset byte
+          8
+      }
 }
 
 //0xAF
@@ -1821,7 +1939,7 @@ mod tests
     {
         let mut memory: Vec<u8> = vec![0; 0x10000];
 
-        memory[0x0000] = 0x16;
+        memory[0x0000] = 0x1E;
         memory[0x0001] = 0x23;
 
         let interconnect = Interconnect::new(memory);
@@ -2045,6 +2163,7 @@ mod tests
 
     }
 
+    //0x28
     #[test]
     fn test_jr_z_r8_taken() 
     {
@@ -2052,7 +2171,7 @@ mod tests
         let interconnect = Interconnect::new(memory);
         let mut cpu = Cpu::new(interconnect);
 
-        cpu.set_register_16(0x0000, "PC");
+        cpu.set_register_16(0x0001, "PC");
         cpu.set_flags('Z', true);
 
         // Put offset 0x05 at PC+1
@@ -2064,6 +2183,7 @@ mod tests
         assert_eq!(cpu.get_register_16("PC"), 0x0002 + 0x05);
     }
 
+    //0x28
     #[test]
     fn test_jr_z_r8_not_taken() 
     {
@@ -2071,7 +2191,7 @@ mod tests
         let interconnect = Interconnect::new(memory);
         let mut cpu = Cpu::new(interconnect);
 
-        cpu.set_register_16(0x0000, "PC");
+        cpu.set_register_16(0x0001, "PC");
         cpu.set_flags('Z', false);
 
         // Put offset 0x05 at PC+1
@@ -2081,6 +2201,184 @@ mod tests
 
         assert_eq!(cycles, 8);
         assert_eq!(cpu.get_register_16("PC"), 0x0002); // skipped
+    }
+
+    //0x29
+    #[test]
+    fn test_add_hl_hl()
+    {
+        let memory: Vec<u8> = vec![0; 0x10000];
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_register_16(0x1234, "HL");
+
+        let cycles = add_hl_hl(&mut cpu);
+
+        assert_eq!(cycles, 0x08);
+        assert_eq!(cpu.get_register_16("HL"), 0x2468);
+    }
+
+    //0x2A
+    #[test]
+    fn test_ld_a_hl_inc()
+    {
+        let mut memory: Vec<u8> = vec![0; 0x10000];
+
+        memory[0xC000] = 0x7F;
+
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_register_16(0xC000, "HL");
+        cpu.set_register_8(0x00, 'A');
+
+        let cycles = ld_a_hl_inc(&mut cpu);
+
+        assert_eq!(cycles, 8);
+        assert_eq!(cpu.get_register_8('A'), 0x7F);
+        assert_eq!(cpu.get_register_16("HL"), 0xC001);
+    }
+
+    //0x2B
+    #[test]
+    fn test_dec_hl()
+    {
+        let memory: Vec<u8> = vec![0; 0x10000];
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_register_16(0x22, "HL");
+
+        let cycles = dec_hl(&mut cpu);
+
+        assert_eq!(cycles, 8);
+        assert_eq!(cpu.get_register_16("HL"), 0x21);
+
+    }
+
+    //0x2C
+    #[test]
+    fn test_inc_l()
+    {
+        let memory: Vec<u8> = vec![0; 0x10000];
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_register_8(0x34, 'L');
+
+        let cycles = inc_l(&mut cpu);
+
+        assert_eq!(cycles, 4);
+        assert_eq!(cpu.get_flags('N'), false);
+        assert_eq!(cpu.get_flags('Z'), false);
+        assert_eq!(cpu.get_flags('H'), false);
+        assert_eq!(cpu.get_register_8('L'), 0x35);
+
+    }
+
+    //0x2D
+    #[test]
+    fn test_dec_l()
+    {
+        let memory: Vec<u8> = vec![0; 0x10000];
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_register_8(0x25, 'L');
+
+        let cycles = dec_l(&mut cpu);
+
+        assert_eq!(cycles, 4);
+        assert_eq!(cpu.get_flags('N'), true);
+        assert_eq!(cpu.get_flags('Z'), false);
+        assert_eq!(cpu.get_flags('H'), false);
+        assert_eq!(cpu.get_register_8('L'), 0x24);
+    }
+
+    //0x2E
+    #[test]
+    fn test_ld_l_d8()
+    {
+        let mut memory: Vec<u8> = vec![0; 0x10000];
+
+        memory[0x0000] = 0x2E;
+        memory[0x0001] = 0x23;
+
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_register_16(0x0000, "PC");
+
+        let cycles = ld_l_d8(&mut cpu);
+
+        assert_eq!(cycles, 8);
+        assert_eq!(cpu.get_register_16("PC"), 0x0002);
+        assert_eq!(cpu.get_register_8('L'), 0x23);
+
+    }
+
+    //0x2F
+    #[test]
+    fn test_cpl() 
+    {
+        let memory: Vec<u8> = vec![0; 0x10000];
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_register_8(0b1010_1010, 'A');
+        cpu.set_flags('Z', false);
+        cpu.set_flags('C', true); 
+
+        let cycles = cpl(&mut cpu);
+
+        assert_eq!(cycles, 4);
+
+        assert_eq!(cpu.get_register_8('A'), 0b0101_0101);
+
+        assert_eq!(cpu.get_flags('N'), true);
+        assert_eq!(cpu.get_flags('H'), true);
+        assert_eq!(cpu.get_flags('Z'), false); // unchanged
+        assert_eq!(cpu.get_flags('C'), true);  // unchanged
+    }
+
+    //0x30
+    #[test]
+    fn test_jr_nc_r8_taken() 
+    {
+        let mut memory: Vec<u8> = vec![0; 0x10000];
+        memory[0x0000] = 0x30; // opcode JR NC,r8
+        memory[0x0001] = 0x06; // offset +6
+
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_register_16(0x0000, "PC"); // PC points at offset byte
+        cpu.set_flags('C', false); // Carry = 0 → jump should be taken
+
+        let cycles = jr_nc_r8(&mut cpu);
+
+        assert_eq!(cycles, 12);
+        assert_eq!(cpu.get_register_16("PC"), 0x0008); // 1 + 6 = 7
+    }
+
+    #[test]
+    fn test_jr_nc_r8_not_taken() 
+    {
+        let mut memory: Vec<u8> = vec![0; 0x10000];
+        memory[0x0000] = 0x30;
+        memory[0x0001] = 0x06;
+
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_register_16(0x0001, "PC");
+        cpu.set_flags('C', true); // Carry = 1 → no jump
+
+        let cycles = jr_nc_r8(&mut cpu);
+
+        assert_eq!(cycles, 8);
+        assert_eq!(cpu.get_register_16("PC"), 0x0002); // only offset byte consumed
     }
 
 

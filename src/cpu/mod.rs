@@ -350,7 +350,9 @@ impl Cpu
             'B' => self.regs.B = val,
             'C' => self.regs.C = val,
             'D' => self.regs.D = val,
-            'E' => self.regs.E = val, 
+            'E' => self.regs.E = val,
+            'H' => self.regs.H = val,
+            'L' => self.regs.L = val, 
 
             _ => println!("invalid value"),
 

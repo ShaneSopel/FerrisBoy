@@ -16,7 +16,9 @@ use crate::interconnect;
 
 pub struct Interconnect//<'a>
 {
-    pub rom: Vec<u8>,
+
+
+    pub rom: [u8; 0x8000],
     pub vram: [u8; 0x2000],
     pub wram: [u8; 0x2000],
     pub oam: [u8; 0xA0],
@@ -25,25 +27,34 @@ pub struct Interconnect//<'a>
     pub ie_register: u8,
 }
 
-impl Interconnect
-//impl<'a> Interconnect<'a>
-{
-    pub fn new(rom_data: Vec<u8>) -> Interconnect
-
-    {
-        //set memory bank when ready.
-        Interconnect
-        {
-            rom: rom_data,
+impl Interconnect {
+    /// Initialize with a test Vec<u8> memory
+    pub fn new(memory: Vec<u8>) -> Self {
+        let mut inter = Self {
+            rom: [0; 0x8000],
             vram: [0; 0x2000],
             wram: [0; 0x2000],
             oam: [0; 0xA0],
             io: [0; 0x80],
             hram: [0; 0x7F],
             ie_register: 0,
-        }
-    }
+        };
 
+        for (addr, &val) in memory.iter().enumerate() {
+            let address = addr as u16;
+            match address {
+                0x0000..=0x7FFF => inter.rom[address as usize] = val,
+                0x8000..=0x9FFF => inter.vram[(address - 0x8000) as usize] = val,
+                0xC000..=0xDFFF => inter.wram[(address - 0xC000) as usize] = val,
+                0xFE00..=0xFE9F => inter.oam[(address - 0xFE00) as usize] = val,
+                0xFF00..=0xFF7F => inter.io[(address - 0xFF00) as usize] = val,
+                0xFF80..=0xFFFE => inter.hram[(address - 0xFF80) as usize] = val,
+                0xFFFF => inter.ie_register = val,
+                _ => {}
+            }
+        }
+        inter
+    }
 
     pub fn read_byte(&mut self, address: u16) -> u8
     {

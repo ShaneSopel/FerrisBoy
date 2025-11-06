@@ -64,9 +64,9 @@ pub const OPCODES: [Opcode; 256] =
     Opcode { mnemonic: "LD", bytes: 2,     immediate: true, execute: ld_l_d8 }, // 0x2E
     Opcode { mnemonic: "CPL", bytes: 1,    immediate: true, execute: cpl }, // 0x2F
     Opcode { mnemonic: "JR", bytes: 2,     immediate: true, execute: jr_nc_r8 }, // 0x30
-    Opcode { mnemonic: "LD", bytes: 3,     immediate: true, execute: undefined }, // 0x31
-    Opcode { mnemonic: "LD", bytes: 1,     immediate: false, execute: undefined }, // 0x32
-    Opcode { mnemonic: "INC", bytes: 1,    immediate: true, execute: undefined }, // 0x33
+    Opcode { mnemonic: "LD", bytes: 3,     immediate: true, execute: ld_sp_d16 }, // 0x31
+    Opcode { mnemonic: "LD", bytes: 1,     immediate: false, execute: ld_hl_dec_a }, // 0x32
+    Opcode { mnemonic: "INC", bytes: 1,    immediate: true, execute: inc_sp }, // 0x33
     Opcode { mnemonic: "INC", bytes: 1,    immediate: false, execute: undefined }, // 0x34
     Opcode { mnemonic: "DEC", bytes: 1,    immediate: false, execute: undefined }, // 0x35
     Opcode { mnemonic: "LD", bytes: 2,     immediate: false, execute: undefined }, // 0x36
@@ -1324,22 +1324,59 @@ pub fn cpl(cpu: &mut Cpu) -> u8
 //0x30
 pub fn jr_nc_r8(cpu: &mut Cpu) -> u8
 {
-      // Read signed offset (this increments PC)
-      let offset = read_u8_from_pc(cpu) as i8;
-      let pc_after_read = cpu.get_register_16("PC");
-  
-      if !cpu.get_flags('C') 
-      {
-          // Jump taken: add signed offset to PC (already incremented)
-          let new_pc = pc_after_read.wrapping_add(offset as i16 as u16);
-          cpu.set_register_16(new_pc, "PC");
-          12
-      } 
-      else 
-      {
-          // Not taken: PC already incremented past offset byte
-          8
-      }
+    let pc = cpu.get_register_16("PC");
+    if cpu.inter.read_byte(pc) == 0x30
+    {
+        cpu.set_register_16(pc.wrapping_add(1), "PC");
+    }
+
+    let pc = cpu.get_register_16("PC");
+    let offset = cpu.inter.read_byte(pc) as i8;
+    cpu.set_register_16(pc.wrapping_add(1), "PC");
+
+    let pc_after = cpu.get_register_16("PC");
+    if !cpu.get_flags('C') 
+    {
+        let new_pc = pc_after.wrapping_add(offset as i16 as u16);
+        cpu.set_register_16(new_pc, "PC");
+        12
+    } 
+    else 
+    {
+        8
+    }
+}
+
+//0x31
+pub fn ld_sp_d16(cpu: &mut Cpu) -> u8
+{
+    let pc = cpu.get_register_16("PC");
+    cpu.set_register_16(pc.wrapping_add(1), "PC");
+
+    let sp = read_u16_from_pc(cpu);
+    cpu.set_register_16(sp, "SP");
+    12
+}
+
+//0x32
+pub fn ld_hl_dec_a(cpu: &mut Cpu) -> u8
+{
+    let hl = cpu.get_register_16("HL");
+    let a = cpu.get_register_8('A');
+
+    cpu.inter.write_byte(hl, a);
+    cpu.set_register_16(hl.wrapping_sub(1), "HL");
+
+    8
+}
+
+//0x33
+pub fn inc_sp(cpu: &mut Cpu) -> u8
+{
+    let sp = cpu.get_register_16("SP");
+    cpu.set_register_16(sp.wrapping_add(1), "SP");
+
+    8
 }
 
 //0xAF
@@ -2038,7 +2075,6 @@ mod tests
         assert_eq!(cycles, 12);
         assert_eq!(cpu.get_register_16("PC"), 0x0003);
         assert_eq!(cpu.get_register_16("HL"), 0x1223);
-
     }
 
     //0x22
@@ -2076,7 +2112,6 @@ mod tests
 
         assert_eq!(cycles, 8);
         assert_eq!(cpu.get_register_16("HL"), 0x26);
-
     }
 
     //0x24
@@ -2096,7 +2131,6 @@ mod tests
         assert_eq!(cpu.get_flags('Z'), false);
         assert_eq!(cpu.get_flags('H'), false);
         assert_eq!(cpu.get_register_8('H'), 0x26);
-
     }
 
     //0x25
@@ -2116,7 +2150,6 @@ mod tests
         assert_eq!(cpu.get_flags('Z'), false);
         assert_eq!(cpu.get_flags('H'), false);
         assert_eq!(cpu.get_register_8('H'), 0x24);
-
     }
 
     //0x26
@@ -2138,7 +2171,6 @@ mod tests
         assert_eq!(cycles, 8);
         assert_eq!(cpu.get_register_16("PC"), 0x0002);
         assert_eq!(cpu.get_register_8('H'), 0x23);
-
     }
     
     //0x27
@@ -2160,7 +2192,6 @@ mod tests
         assert_eq!(cpu.get_register_8('A'), 0x00);
         assert!(cpu.get_flags('Z'));
         assert!(cpu.get_flags('C'));
-
     }
 
     //0x28
@@ -2254,7 +2285,6 @@ mod tests
 
         assert_eq!(cycles, 8);
         assert_eq!(cpu.get_register_16("HL"), 0x21);
-
     }
 
     //0x2C
@@ -2274,7 +2304,6 @@ mod tests
         assert_eq!(cpu.get_flags('Z'), false);
         assert_eq!(cpu.get_flags('H'), false);
         assert_eq!(cpu.get_register_8('L'), 0x35);
-
     }
 
     //0x2D
@@ -2315,7 +2344,6 @@ mod tests
         assert_eq!(cycles, 8);
         assert_eq!(cpu.get_register_16("PC"), 0x0002);
         assert_eq!(cpu.get_register_8('L'), 0x23);
-
     }
 
     //0x2F
@@ -2362,6 +2390,7 @@ mod tests
         assert_eq!(cpu.get_register_16("PC"), 0x0008); // 1 + 6 = 7
     }
 
+    //0x30
     #[test]
     fn test_jr_nc_r8_not_taken() 
     {
@@ -2381,6 +2410,63 @@ mod tests
         assert_eq!(cpu.get_register_16("PC"), 0x0002); // only offset byte consumed
     }
 
+    //0x31
+    #[test]
+    fn test_ld_sp_d16()
+    {
+        let mut memory: Vec<u8> = vec![0; 0x10000];
 
+        memory[0x0000] = 0x21;
+        memory[0x0001] = 0x23;
+        memory[0x0002] = 0x12;
+
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_register_16(0x0000, "PC");
+
+        let cycles = ld_sp_d16(&mut cpu);
+
+        assert_eq!(cycles, 12);
+        assert_eq!(cpu.get_register_16("PC"), 0x0003);
+        assert_eq!(cpu.get_register_16("SP"), 0x1223);
+    }
+
+    //0x32
+    #[test]
+    fn test_ld_hl_dec_a()
+    {
+        let memory: Vec<u8> = vec![0; 0x10000];
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_register_8(0x42, 'A');
+        cpu.set_register_8(0xC0, 'H');
+        cpu.set_register_8(0x00, 'L');
+
+      
+        let cycles = ld_hl_dec_a(&mut cpu);
+
+        assert_eq!(cycles, 8);
+        assert_eq!(cpu.inter.read_byte(0xC000), 0x42);
+        assert_eq!(cpu.get_register_8('A'), 0x42);
+        assert_eq!(cpu.get_register_16("HL"), 0xBFFF)
+    }
+
+    //0x33
+    #[test]
+    fn test_inc_sp()
+    {
+        let memory: Vec<u8> = vec![0; 0x10000];
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_register_16(0x25, "SP");
+
+        let cycles = inc_sp(&mut cpu);
+
+        assert_eq!(cycles, 8);
+        assert_eq!(cpu.get_register_16("SP"), 0x26);
+    }
 
 }

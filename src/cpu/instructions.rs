@@ -67,8 +67,8 @@ pub const OPCODES: [Opcode; 256] =
     Opcode { mnemonic: "LD", bytes: 3,     immediate: true, execute: ld_sp_d16 }, // 0x31
     Opcode { mnemonic: "LD", bytes: 1,     immediate: false, execute: ld_hl_dec_a }, // 0x32
     Opcode { mnemonic: "INC", bytes: 1,    immediate: true, execute: inc_sp }, // 0x33
-    Opcode { mnemonic: "INC", bytes: 1,    immediate: false, execute: undefined }, // 0x34
-    Opcode { mnemonic: "DEC", bytes: 1,    immediate: false, execute: undefined }, // 0x35
+    Opcode { mnemonic: "INC", bytes: 1,    immediate: false, execute: inc_hl_mem }, // 0x34
+    Opcode { mnemonic: "DEC", bytes: 1,    immediate: false, execute: dec_hl_mem }, // 0x35
     Opcode { mnemonic: "LD", bytes: 2,     immediate: false, execute: undefined }, // 0x36
     Opcode { mnemonic: "SCF", bytes: 1,    immediate: true, execute: undefined }, // 0x37
     Opcode { mnemonic: "JR", bytes: 2,     immediate: true, execute: undefined }, // 0x38
@@ -1379,6 +1379,41 @@ pub fn inc_sp(cpu: &mut Cpu) -> u8
     8
 }
 
+//0x34
+pub fn inc_hl_mem(cpu: &mut Cpu) -> u8
+{
+    let addr = cpu.get_register_16("HL");
+    let value = cpu.inter.read_byte(addr);
+    let result = value.wrapping_add(1);
+
+    cpu.inter.write_byte(addr, result);
+
+    // Update flags
+    cpu.set_flags('Z', result == 0);
+    cpu.set_flags('N', false);
+    cpu.set_flags('H', (value & 0x0F) + 1 > 0x0F);
+
+    12
+}
+
+//0x35
+pub fn dec_hl_mem(cpu: &mut Cpu) -> u8
+{
+    let addr = cpu.get_register_16("HL");
+    let value = cpu.inter.read_byte(addr);
+    let result = value.wrapping_sub(1);
+
+    cpu.inter.write_byte(addr, result);
+
+    // Update flags
+    cpu.set_flags('Z', result == 0);
+    cpu.set_flags('N', true);
+    cpu.set_flags('H', (value & 0x0F) == 0);
+
+    12
+}
+
+
 //0xAF
 pub fn in_xor_a(cpu: &mut Cpu) -> u8
 {
@@ -2468,5 +2503,148 @@ mod tests
         assert_eq!(cycles, 8);
         assert_eq!(cpu.get_register_16("SP"), 0x26);
     }
+
+    // 0x34
+    #[test]
+    fn test_inc_hl_reg() 
+    {
+        // Create memory and CPU
+        let mut memory: Vec<u8> = vec![0; 0x10000];
+        memory[0xC000] = 0x0F; // initial value at (HL)
+
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        // Set HL to point to the memory location
+        cpu.set_register_16(0xC000, "HL");
+
+        cpu.set_flags('Z', true);
+        cpu.set_flags('N', true);
+        cpu.set_flags('H', false);
+        cpu.set_flags('C', true); // Carry should remain unchanged
+
+        let cycles = inc_hl_mem(&mut cpu);
+
+        // Verify timing
+        assert_eq!(cycles, 12);
+
+        assert_eq!(cpu.inter.read_byte(0xC000), 0x10);
+
+        // Verify flags
+        assert_eq!(cpu.get_flags('Z'), false);
+        assert_eq!(cpu.get_flags('N'), false);
+        assert_eq!(cpu.get_flags('H'), true);
+        assert_eq!(cpu.get_flags('C'), true);
+    }
+
+    #[test]
+    fn test_inc_hl_zero_result() {
+        let mut memory: Vec<u8> = vec![0; 0x10000];
+        memory[0xC000] = 0xFF;
+
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_register_16(0xC000, "HL");
+
+        let cycles = inc_hl_mem(&mut cpu);
+
+        assert_eq!(cycles, 12);
+        assert_eq!(cpu.inter.read_byte(0xC000), 0x00);
+        assert_eq!(cpu.get_flags('Z'), true);
+        assert_eq!(cpu.get_flags('H'), true);
+        assert_eq!(cpu.get_flags('N'), false);
+    }
+
+    #[test]
+    fn test_inc_hl_normal_no_halfcarry() {
+        let mut memory: Vec<u8> = vec![0; 0x10000];
+        memory[0xC000] = 0x3A;
+
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_register_16(0xC000, "HL");
+
+        let cycles = inc_hl_mem(&mut cpu);
+
+        assert_eq!(cycles, 12);
+        assert_eq!(cpu.inter.read_byte(0xC000), 0x3B);
+        assert_eq!(cpu.get_flags('Z'), false);
+        assert_eq!(cpu.get_flags('H'), false);
+        assert_eq!(cpu.get_flags('N'), false);
+    }
+
+    // 0x35
+    #[test]
+    fn test_dec_hl_reg() 
+    {
+        // Create memory and CPU
+        let mut memory: Vec<u8> = vec![0; 0x10000];
+        memory[0xC000] = 0x0F; // initial value at (HL)
+
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        // Set HL to point to the memory location
+        cpu.set_register_16(0xC000, "HL");
+
+        cpu.set_flags('Z', true);
+        cpu.set_flags('N', true);
+        cpu.set_flags('H', true);
+        cpu.set_flags('C', true); // Carry should remain unchanged
+
+        let cycles = dec_hl_mem(&mut cpu);
+
+        // Verify timing
+        assert_eq!(cycles, 12);
+
+        assert_eq!(cpu.inter.read_byte(0xC000), 0x0E);
+
+        // Verify flags
+        assert_eq!(cpu.get_flags('Z'), false);
+        assert_eq!(cpu.get_flags('N'), true);
+        assert_eq!(cpu.get_flags('H'), false);
+        assert_eq!(cpu.get_flags('C'), true);
+    }
+
+    #[test]
+    fn test_dec_hl_zero_result() {
+        let mut memory: Vec<u8> = vec![0; 0x10000];
+        memory[0xC000] = 0x01;
+
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_register_16(0xC000, "HL");
+
+        let cycles = dec_hl_mem(&mut cpu);
+
+        assert_eq!(cycles, 12);
+        assert_eq!(cpu.inter.read_byte(0xC000), 0x00);
+        assert_eq!(cpu.get_flags('Z'), true);
+        assert_eq!(cpu.get_flags('H'), false);
+        assert_eq!(cpu.get_flags('N'), true);
+    }
+
+    #[test]
+    fn test_dec_hl_normal_no_halfcarry() {
+        let mut memory: Vec<u8> = vec![0; 0x10000];
+        memory[0xC000] = 0x3A;
+
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_register_16(0xC000, "HL");
+
+        let cycles = dec_hl_mem(&mut cpu);
+
+        assert_eq!(cycles, 12);
+        assert_eq!(cpu.inter.read_byte(0xC000), 0x39);
+        assert_eq!(cpu.get_flags('Z'), false);
+        assert_eq!(cpu.get_flags('H'), false);
+        assert_eq!(cpu.get_flags('N'), true);
+    }
+
 
 }

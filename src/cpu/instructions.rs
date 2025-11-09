@@ -616,7 +616,7 @@ pub fn ld_hl_r(cpu: &mut Cpu, src: char) -> u8
 {
     let addr = cpu.get_register_16("HL");
     let value = cpu.get_register_8(src);
-    cpu.write_byte(addr, value);
+    cpu.inter.write_byte(addr, value);
     8 // cycles
 }
 
@@ -1877,61 +1877,37 @@ pub fn ld_l_a(cpu: &mut Cpu) -> u8
 //0x70
 pub fn ld_hl_b(cpu: &mut Cpu) -> u8
 {
-    let hl = cpu.get_register_16("HL");
-    let val = cpu.get_register_8('B');
-    cpu.inter.write_byte(hl, val);
-
-    8
+    return ld_hl_r(cpu, 'B');
 }
 
 //0x71
 pub fn ld_hl_c(cpu: &mut Cpu) -> u8
 {
-    let hl = cpu.get_register_16("HL");
-    let val = cpu.get_register_8('C');
-    cpu.inter.write_byte(hl, val);
-
-    8
+     return ld_hl_r(cpu, 'C');
 }
 
 //0x72
 pub fn ld_hl_d(cpu: &mut Cpu) -> u8
 {
-    let hl = cpu.get_register_16("HL");
-    let val = cpu.get_register_8('D');
-    cpu.inter.write_byte(hl, val);
-
-    8
+    return ld_hl_r(cpu, 'D');
 }
 
 //0x73
 pub fn ld_hl_e(cpu: &mut Cpu) -> u8
 {
-    let hl = cpu.get_register_16("HL");
-    let val = cpu.get_register_8('E');
-    cpu.inter.write_byte(hl, val);
-
-    8
+     return ld_hl_r(cpu, 'E');
 }
 
 //0x74
 pub fn ld_hl_h(cpu: &mut Cpu) -> u8
 {
-    let hl = cpu.get_register_16("HL");
-    let val = cpu.get_register_8('H');
-    cpu.inter.write_byte(hl, val);
-
-    8
+     return ld_hl_r(cpu, 'H');
 }
 
 //0x75
 pub fn ld_hl_l(cpu: &mut Cpu) -> u8
 {
-    let hl = cpu.get_register_16("HL");
-    let val = cpu.get_register_8('L');
-    cpu.inter.write_byte(hl, val);
-
-    8
+     return ld_hl_r(cpu, 'L');
 }
 
 //0x76
@@ -1944,11 +1920,7 @@ pub fn halt(cpu: &mut Cpu) -> u8
 //0x77
 pub fn ld_hl_a(cpu: &mut Cpu) -> u8
 {
-    let hl = cpu.get_register_16("HL");
-    let val = cpu.get_register_8('A');
-    cpu.inter.write_byte(hl, val);
-
-    8
+    return ld_hl_r(cpu, 'A');
 }
 
 //0x78
@@ -1984,7 +1956,7 @@ pub fn ld_a_h(cpu: &mut Cpu) -> u8
 //0x7D
 pub fn ld_a_l(cpu: &mut Cpu) -> u8
 {
-    return ld_r_r(cpu, 'A', 'H');
+    return ld_r_r(cpu, 'A', 'L');
 }
 
 //0x7E
@@ -4350,6 +4322,157 @@ mod tests
         let mut cpu = Cpu::new(interconnect);
 
     }
+
+    //0x77
+    #[test]
+    fn test_ld_hl_a() 
+    {
+        let memory: Vec<u8> = vec![0; 0x10000];
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_register_8( 0x42, 'A');
+        cpu.set_register_16(0xC123, "HL");
+
+        let cycles = ld_hl_l(&mut cpu);
+        
+        assert_eq!(cycles, 8);
+        assert_eq!(cpu.inter.read_byte(0xC123), 0x42);
+    }
+
+    //0x78
+    #[test]
+    fn test_ld_a_b()
+    {
+        let memory: Vec<u8> = vec![0; 0x10000];
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_register_8(0x03, 'B');
+
+        let cycles = ld_a_b(&mut cpu);
+
+        assert_eq!(cycles, 4);
+        assert_eq!(cpu.get_register_8('A'), 0x03);
+    }
+
+    //0x79
+    #[test]
+    fn test_ld_a_c()
+    {
+        let memory: Vec<u8> = vec![0; 0x10000];
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_register_8(0x03, 'C');
+
+        let cycles = ld_a_c(&mut cpu);
+
+        assert_eq!(cycles, 4);
+        assert_eq!(cpu.get_register_8('A'), 0x03);
+    }
+
+    //0x7A
+    #[test]
+    fn test_ld_a_d()
+    {
+        let memory: Vec<u8> = vec![0; 0x10000];
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_register_8(0x03, 'D');
+
+        let cycles = ld_a_d(&mut cpu);
+
+        assert_eq!(cycles, 4);
+        assert_eq!(cpu.get_register_8('A'), 0x03);
+    }
+
+    //0x7B
+    #[test]
+    fn test_ld_a_e()
+    {
+        let memory: Vec<u8> = vec![0; 0x10000];
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_register_8(0x03, 'E');
+
+        let cycles = ld_a_e(&mut cpu);
+
+        assert_eq!(cycles, 4);
+        assert_eq!(cpu.get_register_8('A'), 0x03);
+    }
+
+
+    //0x7C
+    #[test]
+    fn test_ld_a_h()
+    {
+        let memory: Vec<u8> = vec![0; 0x10000];
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_register_8(0x03, 'H');
+
+        let cycles = ld_a_h(&mut cpu);
+
+        assert_eq!(cycles, 4);
+        assert_eq!(cpu.get_register_8('A'), 0x03);
+    }
+
+    //0x7D
+    #[test]
+    fn test_ld_a_l()
+    {
+        let memory: Vec<u8> = vec![0; 0x10000];
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_register_8(0x03, 'L');
+
+        let cycles = ld_a_l(&mut cpu);
+
+        assert_eq!(cycles, 4);
+        assert_eq!(cpu.get_register_8('A'), 0x03);
+    }
+
+    //0x7E
+    #[test]
+    fn test_ld_a_hl()
+    {
+        let mut memory: Vec<u8> = vec![0; 0x10000];
+        memory[0xC123] = 0x7F; // value to load
+    
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+    
+        cpu.set_register_16(0xC123, "HL");
+        cpu.set_register_8(0x00, 'A');
+    
+        let cycles = ld_a_hl(&mut cpu);
+    
+        assert_eq!(cycles, 8);
+        assert_eq!(cpu.get_register_8('A'), 0x7F);
+    }
+
+    //0x7D
+    #[test]
+    fn test_ld_a_a()
+    {
+        let memory: Vec<u8> = vec![0; 0x10000];
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_register_8(0x03, 'A');
+
+        let cycles = ld_a_a(&mut cpu);
+
+        assert_eq!(cycles, 4);
+        assert_eq!(cpu.get_register_8('A'), 0x03);
+    }
+
+
 
 
 }

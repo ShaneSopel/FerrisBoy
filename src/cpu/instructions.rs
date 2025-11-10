@@ -143,12 +143,12 @@ pub const OPCODES: [Opcode; 256] =
     Opcode { mnemonic: "LD", bytes: 1,     immediate: true, execute: ld_a_l }, // 0x7D
     Opcode { mnemonic: "LD", bytes: 1,     immediate: false, execute: ld_a_hl }, // 0x7E
     Opcode { mnemonic: "LD", bytes: 1,     immediate: true, execute: ld_a_a }, // 0x7F
-    Opcode { mnemonic: "ADD", bytes: 1,    immediate: true, execute: undefined }, // 0x80
-    Opcode { mnemonic: "ADD", bytes: 1,    immediate: true, execute: undefined }, // 0x81
-    Opcode { mnemonic: "ADD", bytes: 1,    immediate: true, execute: undefined }, // 0x82
-    Opcode { mnemonic: "ADD", bytes: 1,    immediate: true, execute: undefined }, // 0x83
-    Opcode { mnemonic: "ADD", bytes: 1,    immediate: true, execute: undefined }, // 0x84
-    Opcode { mnemonic: "ADD", bytes: 1,    immediate: true, execute: undefined }, // 0x85
+    Opcode { mnemonic: "ADD", bytes: 1,    immediate: true, execute: add_a_b }, // 0x80
+    Opcode { mnemonic: "ADD", bytes: 1,    immediate: true, execute: add_a_c }, // 0x81
+    Opcode { mnemonic: "ADD", bytes: 1,    immediate: true, execute: add_a_d }, // 0x82
+    Opcode { mnemonic: "ADD", bytes: 1,    immediate: true, execute: add_a_e }, // 0x83
+    Opcode { mnemonic: "ADD", bytes: 1,    immediate: true, execute: add_a_h }, // 0x84
+    Opcode { mnemonic: "ADD", bytes: 1,    immediate: true, execute: add_a_l }, // 0x85
     Opcode { mnemonic: "ADD", bytes: 1,    immediate: false, execute: undefined }, // 0x86
     Opcode { mnemonic: "ADD", bytes: 1,    immediate: true, execute: undefined }, // 0x87
     Opcode { mnemonic: "ADC", bytes: 1,    immediate: true, execute: undefined }, // 0x88
@@ -618,6 +618,21 @@ pub fn ld_hl_r(cpu: &mut Cpu, src: char) -> u8
     let value = cpu.get_register_8(src);
     cpu.inter.write_byte(addr, value);
     8 // cycles
+}
+
+pub fn add_8bit(cpu: &mut Cpu, a: u8, b: u8, include_carry: bool) -> u8 
+{
+    let carry_in = if include_carry && cpu.get_flags('C') { 1 } else { 0 };
+    
+    let (sum1, overflow1) = a.overflowing_add(b);
+    let (result, overflow2) = sum1.overflowing_add(carry_in);
+
+    cpu.set_flags('Z', result == 0);                    
+    cpu.set_flags('N', false);                           
+    cpu.set_flags('H', ((a & 0x0F) + (b & 0x0F) + carry_in) > 0x0F);
+    cpu.set_flags('C', overflow1 || overflow2);     
+
+    result
 }
 
 pub fn read_u16_from_pc(cpu: &mut Cpu) -> u16
@@ -1810,6 +1825,8 @@ pub fn ld_h_hl(cpu: &mut Cpu) -> u8
     let hl = cpu.get_register_16("HL");
     let val = cpu.inter.read_byte(hl);
 
+    println!("ld_h_hl: HL={:#06X}, read={:#04X}", hl, val);
+
     cpu.set_register_8(val, 'H');
 
     8
@@ -1974,6 +1991,78 @@ pub fn ld_a_hl(cpu: &mut Cpu) -> u8
 pub fn ld_a_a(cpu: &mut Cpu) -> u8
 {
     return ld_r_r(cpu, 'A', 'A');
+}
+
+//0x80
+pub fn add_a_b(cpu: &mut Cpu) -> u8
+{
+    let a = cpu.get_register_8('A');
+    let b = cpu.get_register_8('B');
+
+    let result = add_8bit(cpu, a, b, false);
+    cpu.set_register_8(result, 'A');     
+
+    4 
+}
+
+//0x81
+pub fn add_a_c(cpu: &mut Cpu) -> u8
+{
+    let a = cpu.get_register_8('A');
+    let c = cpu.get_register_8('C');
+
+    let result = add_8bit(cpu, a, c, false);
+    cpu.set_register_8(result, 'A');     
+
+    4 
+}
+
+//0x82
+pub fn add_a_d(cpu: &mut Cpu) -> u8
+{
+    let a = cpu.get_register_8('A');
+    let d = cpu.get_register_8('D');
+
+    let result = add_8bit(cpu, a, d, false);
+    cpu.set_register_8(result, 'A');     
+
+    4 
+}
+
+//0x83
+pub fn add_a_e(cpu: &mut Cpu) -> u8
+{
+    let a = cpu.get_register_8('A');
+    let e = cpu.get_register_8('E');
+
+    let result = add_8bit(cpu, a, e, false);
+    cpu.set_register_8(result, 'A');     
+
+    4 
+}
+
+//0x84
+pub fn add_a_h(cpu: &mut Cpu) -> u8
+{
+    let a = cpu.get_register_8('A');
+    let h = cpu.get_register_8('H');
+
+    let result = add_8bit(cpu, a, h, false);
+    cpu.set_register_8(result, 'A');     
+
+    4 
+}
+
+//0x85
+pub fn add_a_l(cpu: &mut Cpu) -> u8
+{
+    let a = cpu.get_register_8('A');
+    let l = cpu.get_register_8('L');
+
+    let result = add_8bit(cpu, a, l, false);
+    cpu.set_register_8(result, 'A');     
+
+    4 
 }
 
 //0xAF
@@ -4054,10 +4143,10 @@ mod tests
         memory[0xC123] = 0x7F; // value to load
     
         let interconnect = Interconnect::new(memory);
+
         let mut cpu = Cpu::new(interconnect);
     
         cpu.set_register_16(0xC123, "HL");
-        cpu.set_register_8(0x00, 'H');
     
         let cycles = ld_h_hl(&mut cpu);
     
@@ -4188,7 +4277,6 @@ mod tests
         let mut cpu = Cpu::new(interconnect);
     
         cpu.set_register_16(0xC123, "HL");
-        cpu.set_register_8(0x00, 'L');
     
         let cycles = ld_l_hl(&mut cpu);
     
@@ -4288,13 +4376,17 @@ mod tests
         let interconnect = Interconnect::new(memory);
         let mut cpu = Cpu::new(interconnect);
 
-        cpu.set_register_8( 0x42, 'H');
-        cpu.set_register_16(0xC123, "HL");
+        cpu.set_register_16(0xC100, "HL");
+        cpu.set_register_8(0x42, 'H');
+
 
         let cycles = ld_hl_h(&mut cpu);
+
+        let hl_addr = cpu.get_8_to_16_conversion("HL");
+        let mem_val = cpu.inter.read_byte(hl_addr);
         
         assert_eq!(cycles, 8);
-        assert_eq!(cpu.inter.read_byte(0xC123), 0x42);
+        assert_eq!(mem_val, 0x42);
     }
 
     //0x75
@@ -4305,13 +4397,17 @@ mod tests
         let interconnect = Interconnect::new(memory);
         let mut cpu = Cpu::new(interconnect);
 
-        cpu.set_register_8( 0x42, 'L');
-        cpu.set_register_16(0xC123, "HL");
+        cpu.set_register_16(0xC100, "HL");
+        cpu.set_register_8(0x42, 'L');
+
 
         let cycles = ld_hl_l(&mut cpu);
+
+        let hl_addr = cpu.get_8_to_16_conversion("HL");
+        let mem_val = cpu.inter.read_byte(hl_addr);
         
         assert_eq!(cycles, 8);
-        assert_eq!(cpu.inter.read_byte(0xC123), 0x42);
+        assert_eq!(mem_val, 0x42);
     }
 
     //0x76
@@ -4334,7 +4430,7 @@ mod tests
         cpu.set_register_8( 0x42, 'A');
         cpu.set_register_16(0xC123, "HL");
 
-        let cycles = ld_hl_l(&mut cpu);
+        let cycles = ld_hl_a(&mut cpu);
         
         assert_eq!(cycles, 8);
         assert_eq!(cpu.inter.read_byte(0xC123), 0x42);
@@ -4456,7 +4552,7 @@ mod tests
         assert_eq!(cpu.get_register_8('A'), 0x7F);
     }
 
-    //0x7D
+    //0x7F
     #[test]
     fn test_ld_a_a()
     {
@@ -4472,7 +4568,26 @@ mod tests
         assert_eq!(cpu.get_register_8('A'), 0x03);
     }
 
+    //0x80
+    #[test]
+    fn test_add_a_b() 
+    {
+        let memory = vec![0; 0x10000];
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
 
+        cpu.set_register_8(0x3C, 'A');
+        cpu.set_register_8(0xC1, 'B');
 
+        let cycles = add_a_b(&mut cpu);
+
+        assert_eq!(cpu.get_register_8('A'), 0xFD); 
+        assert_eq!(cpu.get_flags('Z'), false);          
+        assert_eq!(cpu.get_flags('N'), false);           
+        assert_eq!(cpu.get_flags('H'), true);            
+        assert_eq!(cpu.get_flags('C'), true);           
+        assert_eq!(cycles, 4);
+    }
+    
 
 }

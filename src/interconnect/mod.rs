@@ -66,7 +66,7 @@ impl Interconnect {
             0xFE00..=0xFE9F => self.oam[(address - 0xFE00) as usize],
             0xFF00..=0xFF7F => self.io[(address - 0xFF00) as usize],
             0xFF80..=0xFFFE => self.hram[(address - 0xFF80) as usize],
-            0xFFF           => self.ie_register,
+            0xFFFF           => self.ie_register,
 
             _ => 0xFF 
         }
@@ -84,7 +84,7 @@ impl Interconnect {
                 0xFE00..=0xFE9F => self.oam[(address - 0xFE00) as usize] = value,
                 0xFF00..=0xFF7F => self.io[(address - 0xFF00) as usize] = value,
                 0xFF80..=0xFFFE => self.hram[(address - 0xFF80) as usize] = value,
-                0xFFF           => self.ie_register = value,
+                0xFFFF          => self.ie_register = value,
     
                 _ => (),
         }

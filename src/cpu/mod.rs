@@ -230,33 +230,32 @@ impl Cpu
     }
 
     // set 16 bit dual registers 
-    fn  set_8_to_16_conversion(&mut self, reg: &str, val: u16)
+    fn set_8_to_16_conversion(&mut self, reg: &str, val: u16)
     {
-       
-       if reg == "AF"
-       {
-            self.regs.A = (val >> 8) as u8;
-            self.regs.F = val as u8;
-       }
-
-       if reg == "BC"
-       {
-            self.regs.B = (val >> 8) as u8;
-            self.regs.C = val as u8;
-       }
-
-       if reg == "DE"
-       {
-            self.regs.D = (val >> 8) as u8;
-            self.regs.E = val as u8;
-       }
-
-       if reg == "HL"
-       {
-            self.regs.H = (val >> 8) as u8;
-            self.regs.L = val as u8;
-       }
-       
+        if reg == "AF"
+        {
+            self.regs.A = (val >> 8) as u8;        
+            self.regs.F = (val & 0xF0) as u8;      
+        }
+        else if reg == "BC"
+        {
+            self.regs.B = (val >> 8) as u8;        
+            self.regs.C = (val & 0xFF) as u8;      
+        }
+        else if reg == "DE"
+        {
+            self.regs.D = (val >> 8) as u8;       
+            self.regs.E = (val & 0xFF) as u8;     
+        }
+        else if reg == "HL"
+        {
+            self.regs.H = (val >> 8) as u8;        
+            self.regs.L = (val & 0xFF) as u8;    
+        }
+        else
+        {
+            println!("invalid entry");
+        }
     }
 
     // get the 16 bit registers values
@@ -264,48 +263,33 @@ impl Cpu
     {
         if reg == "AF"
         {
-            let mut v = self.regs.F as u16;
-
-            v |= (self.regs.A as u16) << 8;
-
-           return v;
+            let mut v = self.regs.F as u16;        
+            v |= (self.regs.A as u16) << 8;          
+            return v & 0xFFF0;                        
         }
-
         else if reg == "BC"
         {
-            let mut v = self.regs.C as u16;
-
-            v |= (self.regs.B as u16) << 8;
-
+            let mut v = self.regs.C as u16;          
+            v |= (self.regs.B as u16) << 8;          
             return v;
-
         }
-
         else if reg == "DE"
         {
-            let mut v = self.regs.E as u16;
-
-            v |= (self.regs.D as u16) << 8;
-
+            let mut v = self.regs.E as u16;          
+            v |= (self.regs.D as u16) << 8;          
             return v;
-            
         }
-
-        else if reg =="HL"
+        else if reg == "HL"
         {
-            let mut v = self.regs.L as u16;
-
-            v |= (self.regs.H as u16) << 8;
-
+            let mut v = self.regs.L as u16;          
+            v |= (self.regs.H as u16) << 8;          
             return v;
         }
-
         else  
         {
-            println!("invvalid entry");
+            println!("invalid entry");
             return 0;  
         }
-        
     }
 
     // set 16 bit register

@@ -620,7 +620,20 @@ pub fn ld_hl_r(cpu: &mut Cpu, src: char) -> u8
     8 // cycles
 }
 
-pub fn add_8bit(cpu: &mut Cpu, a: u8, b: u8, include_carry: bool) -> u8 
+pub fn add_8bit(cpu: &mut Cpu, a: u8, b: u8) -> u8 
+{
+    let (result, carry) = a.overflowing_add(b);
+
+    cpu.set_flags('Z', result == 0);
+    cpu.set_flags('N', false);
+    cpu.set_flags('H', ((a & 0x0F) + (b & 0x0F)) > 0x0F);
+    cpu.set_flags('C', carry);
+
+    result
+}
+
+
+pub fn adc_8bit(cpu: &mut Cpu, a: u8, b: u8, include_carry: bool) -> u8 
 {
     let carry_in = if include_carry && cpu.get_flags('C') { 1 } else { 0 };
     
@@ -1999,7 +2012,7 @@ pub fn add_a_b(cpu: &mut Cpu) -> u8
     let a = cpu.get_register_8('A');
     let b = cpu.get_register_8('B');
 
-    let result = add_8bit(cpu, a, b, false);
+    let result = add_8bit(cpu, a, b);
     cpu.set_register_8(result, 'A');     
 
     4 
@@ -2011,7 +2024,7 @@ pub fn add_a_c(cpu: &mut Cpu) -> u8
     let a = cpu.get_register_8('A');
     let c = cpu.get_register_8('C');
 
-    let result = add_8bit(cpu, a, c, false);
+    let result = add_8bit(cpu, a, c);
     cpu.set_register_8(result, 'A');     
 
     4 
@@ -2023,7 +2036,7 @@ pub fn add_a_d(cpu: &mut Cpu) -> u8
     let a = cpu.get_register_8('A');
     let d = cpu.get_register_8('D');
 
-    let result = add_8bit(cpu, a, d, false);
+    let result = add_8bit(cpu, a, d);
     cpu.set_register_8(result, 'A');     
 
     4 
@@ -2035,7 +2048,7 @@ pub fn add_a_e(cpu: &mut Cpu) -> u8
     let a = cpu.get_register_8('A');
     let e = cpu.get_register_8('E');
 
-    let result = add_8bit(cpu, a, e, false);
+    let result = add_8bit(cpu, a, e);
     cpu.set_register_8(result, 'A');     
 
     4 
@@ -2047,7 +2060,7 @@ pub fn add_a_h(cpu: &mut Cpu) -> u8
     let a = cpu.get_register_8('A');
     let h = cpu.get_register_8('H');
 
-    let result = add_8bit(cpu, a, h, false);
+    let result = add_8bit(cpu, a, h);
     cpu.set_register_8(result, 'A');     
 
     4 
@@ -2059,7 +2072,7 @@ pub fn add_a_l(cpu: &mut Cpu) -> u8
     let a = cpu.get_register_8('A');
     let l = cpu.get_register_8('L');
 
-    let result = add_8bit(cpu, a, l, false);
+    let result = add_8bit(cpu, a, l);
     cpu.set_register_8(result, 'A');     
 
     4 
@@ -4584,10 +4597,114 @@ mod tests
         assert_eq!(cpu.get_register_8('A'), 0xFD); 
         assert_eq!(cpu.get_flags('Z'), false);          
         assert_eq!(cpu.get_flags('N'), false);           
-        assert_eq!(cpu.get_flags('H'), true);            
-        assert_eq!(cpu.get_flags('C'), true);           
+        assert_eq!(cpu.get_flags('H'), false);            
+        assert_eq!(cpu.get_flags('C'), false);           
         assert_eq!(cycles, 4);
     }
     
+    //0x81
+    #[test]
+    fn test_add_a_c() 
+    {
+        let memory = vec![0; 0x10000];
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_register_8(0x3C, 'A');
+        cpu.set_register_8(0xC1, 'C');
+
+        let cycles = add_a_c(&mut cpu);
+
+        assert_eq!(cpu.get_register_8('A'), 0xFD); 
+        assert_eq!(cpu.get_flags('Z'), false);          
+        assert_eq!(cpu.get_flags('N'), false);           
+        assert_eq!(cpu.get_flags('H'), false);            
+        assert_eq!(cpu.get_flags('C'), false);           
+        assert_eq!(cycles, 4);
+    }
+
+    //0x82
+    #[test]
+    fn test_add_a_d() 
+    {
+        let memory = vec![0; 0x10000];
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_register_8(0x3C, 'A');
+        cpu.set_register_8(0xC1, 'D');
+
+        let cycles = add_a_d(&mut cpu);
+
+        assert_eq!(cpu.get_register_8('A'), 0xFD); 
+        assert_eq!(cpu.get_flags('Z'), false);          
+        assert_eq!(cpu.get_flags('N'), false);           
+        assert_eq!(cpu.get_flags('H'), false);            
+        assert_eq!(cpu.get_flags('C'), false);           
+        assert_eq!(cycles, 4);
+    }
+    
+    //0x83
+    #[test]
+    fn test_add_a_e() 
+    {
+        let memory = vec![0; 0x10000];
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_register_8(0x3C, 'A');
+        cpu.set_register_8(0xC1, 'E');
+
+        let cycles = add_a_e(&mut cpu);
+
+        assert_eq!(cpu.get_register_8('A'), 0xFD); 
+        assert_eq!(cpu.get_flags('Z'), false);          
+        assert_eq!(cpu.get_flags('N'), false);           
+        assert_eq!(cpu.get_flags('H'), false);            
+        assert_eq!(cpu.get_flags('C'), false);           
+        assert_eq!(cycles, 4);
+    }
+
+    //0x84
+    #[test]
+    fn test_add_a_h() 
+    {
+        let memory = vec![0; 0x10000];
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_register_8(0x3C, 'A');
+        cpu.set_register_8(0xC1, 'H');
+
+        let cycles = add_a_h(&mut cpu);
+
+        assert_eq!(cpu.get_register_8('A'), 0xFD); 
+        assert_eq!(cpu.get_flags('Z'), false);          
+        assert_eq!(cpu.get_flags('N'), false);           
+        assert_eq!(cpu.get_flags('H'), false);            
+        assert_eq!(cpu.get_flags('C'), false);           
+        assert_eq!(cycles, 4);
+    }
+
+    //0x85
+    #[test]
+    fn test_add_a_l() 
+    {
+        let memory = vec![0; 0x10000];
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_register_8(0x3C, 'A');
+        cpu.set_register_8(0xC1, 'L');
+
+        let cycles = add_a_l(&mut cpu);
+
+        assert_eq!(cpu.get_register_8('A'), 0xFD); 
+        assert_eq!(cpu.get_flags('Z'), false);          
+        assert_eq!(cpu.get_flags('N'), false);           
+        assert_eq!(cpu.get_flags('H'), false);            
+        assert_eq!(cpu.get_flags('C'), false);           
+        assert_eq!(cycles, 4);
+    }
 
 }

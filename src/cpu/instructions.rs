@@ -159,46 +159,46 @@ pub const OPCODES: [Opcode; 256] =
     Opcode { mnemonic: "ADC", bytes: 1,    immediate: true, execute: adc_a_l }, // 0x8D
     Opcode { mnemonic: "ADC", bytes: 1,    immediate: false, execute: adc_a_hl }, // 0x8E
     Opcode { mnemonic: "ADC", bytes: 1,    immediate: true, execute: adc_a_a}, // 0x8F
-    Opcode { mnemonic: "SUB", bytes: 1,    immediate: true, execute: undefined }, // 0x90
-    Opcode { mnemonic: "SUB", bytes: 1,    immediate: true, execute: undefined }, // 0x91
-    Opcode { mnemonic: "SUB", bytes: 1,    immediate: true, execute: undefined }, // 0x92
-    Opcode { mnemonic: "SUB", bytes: 1,    immediate: true, execute: undefined }, // 0x93
-    Opcode { mnemonic: "SUB", bytes: 1,    immediate: true, execute: undefined }, // 0x94
-    Opcode { mnemonic: "SUB", bytes: 1,    immediate: true, execute: undefined }, // 0x95
-    Opcode { mnemonic: "SUB", bytes: 1,    immediate: false, execute: undefined }, // 0x96
-    Opcode { mnemonic: "SUB", bytes: 1,    immediate: true, execute: undefined }, // 0x97
-    Opcode { mnemonic: "SBC", bytes: 1,    immediate: true, execute: undefined }, // 0x98
-    Opcode { mnemonic: "SBC", bytes: 1,    immediate: true, execute: undefined }, // 0x99
-    Opcode { mnemonic: "SBC", bytes: 1,    immediate: true, execute: undefined }, // 0x9A
-    Opcode { mnemonic: "SBC", bytes: 1,    immediate: true, execute: undefined }, // 0x9B
-    Opcode { mnemonic: "SBC", bytes: 1,    immediate: true, execute: undefined }, // 0x9C
-    Opcode { mnemonic: "SBC", bytes: 1,    immediate: true, execute: undefined }, // 0x9D
-    Opcode { mnemonic: "SBC", bytes: 1,    immediate: false, execute: undefined }, // 0x9E
-    Opcode { mnemonic: "SBC", bytes: 1,    immediate: true, execute: undefined }, // 0x9F
-    Opcode { mnemonic: "AND", bytes: 1,    immediate: true, execute: undefined }, // 0xA0
-    Opcode { mnemonic: "AND", bytes: 1,    immediate: true, execute: undefined }, // 0xA1
-    Opcode { mnemonic: "AND", bytes: 1,    immediate: true, execute: undefined }, // 0xA2
-    Opcode { mnemonic: "AND", bytes: 1,    immediate: true, execute: undefined }, // 0xA3
-    Opcode { mnemonic: "AND", bytes: 1,    immediate: true, execute: undefined }, // 0xA4
-    Opcode { mnemonic: "AND", bytes: 1,    immediate: true, execute: undefined }, // 0xA5
-    Opcode { mnemonic: "AND", bytes: 1,    immediate: false, execute: undefined}, // 0xA6
-    Opcode { mnemonic: "AND", bytes: 1,    immediate: true, execute: undefined }, // 0xA7
-    Opcode { mnemonic: "XOR", bytes: 1,    immediate: true, execute: undefined }, // 0xA8
-    Opcode { mnemonic: "XOR", bytes: 1,    immediate: true, execute: undefined }, // 0xA9
-    Opcode { mnemonic: "XOR", bytes: 1,    immediate: true, execute: undefined }, // 0xAA
-    Opcode { mnemonic: "XOR", bytes: 1,    immediate: true, execute: undefined }, // 0xAB
-    Opcode { mnemonic: "XOR", bytes: 1,    immediate: true, execute: undefined }, // 0xAC
-    Opcode { mnemonic: "XOR", bytes: 1,    immediate: true, execute: undefined }, // 0xAD
-    Opcode { mnemonic: "XOR", bytes: 1,    immediate: false, execute: undefined }, // 0xAE
-    Opcode { mnemonic: "XOR", bytes: 1,    immediate: true, execute: in_xor_a}, // 0xAF
-    Opcode { mnemonic: "OR", bytes: 1,     immediate: true, execute: undefined }, // 0xB0
-    Opcode { mnemonic: "OR", bytes: 1,     immediate: true, execute: undefined }, // 0xB1
-    Opcode { mnemonic: "OR", bytes: 1,     immediate: true, execute: undefined }, // 0xB2
-    Opcode { mnemonic: "OR", bytes: 1,     immediate: true, execute: undefined }, // 0xB3
-    Opcode { mnemonic: "OR", bytes: 1,     immediate: true, execute: undefined }, // 0xB4
-    Opcode { mnemonic: "OR", bytes: 1,     immediate: true, execute: undefined }, // 0xB5
-    Opcode { mnemonic: "OR", bytes: 1,     immediate: false, execute: undefined }, // 0xB6
-    Opcode { mnemonic: "OR", bytes: 1,     immediate: true, execute: undefined }, // 0xB7
+    Opcode { mnemonic: "SUB", bytes: 1,    immediate: true, execute: sub_b }, // 0x90
+    Opcode { mnemonic: "SUB", bytes: 1,    immediate: true, execute: sub_c }, // 0x91
+    Opcode { mnemonic: "SUB", bytes: 1,    immediate: true, execute: sub_d }, // 0x92
+    Opcode { mnemonic: "SUB", bytes: 1,    immediate: true, execute: sub_e }, // 0x93
+    Opcode { mnemonic: "SUB", bytes: 1,    immediate: true, execute: sub_h }, // 0x94
+    Opcode { mnemonic: "SUB", bytes: 1,    immediate: true, execute: sub_l }, // 0x95
+    Opcode { mnemonic: "SUB", bytes: 1,    immediate: false, execute: sub_hl }, // 0x96
+    Opcode { mnemonic: "SUB", bytes: 1,    immediate: true, execute: sub_a }, // 0x97
+    Opcode { mnemonic: "SBC", bytes: 1,    immediate: true, execute: sbc_b }, // 0x98
+    Opcode { mnemonic: "SBC", bytes: 1,    immediate: true, execute: sbc_c }, // 0x99
+    Opcode { mnemonic: "SBC", bytes: 1,    immediate: true, execute: sbc_d }, // 0x9A
+    Opcode { mnemonic: "SBC", bytes: 1,    immediate: true, execute: sbc_e }, // 0x9B
+    Opcode { mnemonic: "SBC", bytes: 1,    immediate: true, execute: sbc_h }, // 0x9C
+    Opcode { mnemonic: "SBC", bytes: 1,    immediate: true, execute: sbc_l }, // 0x9D
+    Opcode { mnemonic: "SBC", bytes: 1,    immediate: false, execute: sbc_hl }, // 0x9E
+    Opcode { mnemonic: "SBC", bytes: 1,    immediate: true, execute: sbc_a }, // 0x9F
+    Opcode { mnemonic: "AND", bytes: 1,    immediate: true, execute: and_b }, // 0xA0
+    Opcode { mnemonic: "AND", bytes: 1,    immediate: true, execute: and_c }, // 0xA1
+    Opcode { mnemonic: "AND", bytes: 1,    immediate: true, execute: and_d }, // 0xA2
+    Opcode { mnemonic: "AND", bytes: 1,    immediate: true, execute: and_e }, // 0xA3
+    Opcode { mnemonic: "AND", bytes: 1,    immediate: true, execute: and_h }, // 0xA4
+    Opcode { mnemonic: "AND", bytes: 1,    immediate: true, execute: and_l }, // 0xA5
+    Opcode { mnemonic: "AND", bytes: 1,    immediate: false, execute: and_hl}, // 0xA6
+    Opcode { mnemonic: "AND", bytes: 1,    immediate: true, execute: and_a }, // 0xA7
+    Opcode { mnemonic: "XOR", bytes: 1,    immediate: true, execute: xor_b }, // 0xA8
+    Opcode { mnemonic: "XOR", bytes: 1,    immediate: true, execute: xor_c }, // 0xA9
+    Opcode { mnemonic: "XOR", bytes: 1,    immediate: true, execute: xor_d }, // 0xAA
+    Opcode { mnemonic: "XOR", bytes: 1,    immediate: true, execute: xor_e }, // 0xAB
+    Opcode { mnemonic: "XOR", bytes: 1,    immediate: true, execute: xor_h }, // 0xAC
+    Opcode { mnemonic: "XOR", bytes: 1,    immediate: true, execute: xor_l }, // 0xAD
+    Opcode { mnemonic: "XOR", bytes: 1,    immediate: false, execute: xor_hl }, // 0xAE
+    Opcode { mnemonic: "XOR", bytes: 1,    immediate: true, execute: xor_a}, // 0xAF
+    Opcode { mnemonic: "OR", bytes: 1,     immediate: true, execute: or_b }, // 0xB0
+    Opcode { mnemonic: "OR", bytes: 1,     immediate: true, execute: or_c }, // 0xB1
+    Opcode { mnemonic: "OR", bytes: 1,     immediate: true, execute: or_d }, // 0xB2
+    Opcode { mnemonic: "OR", bytes: 1,     immediate: true, execute: or_e }, // 0xB3
+    Opcode { mnemonic: "OR", bytes: 1,     immediate: true, execute: or_h }, // 0xB4
+    Opcode { mnemonic: "OR", bytes: 1,     immediate: true, execute: or_l }, // 0xB5
+    Opcode { mnemonic: "OR", bytes: 1,     immediate: false, execute: or_hl }, // 0xB6
+    Opcode { mnemonic: "OR", bytes: 1,     immediate: true, execute: or_a }, // 0xB7
     Opcode { mnemonic: "CP", bytes: 1,     immediate: true, execute: undefined }, // 0xB8
     Opcode { mnemonic: "CP", bytes: 1,     immediate: true, execute: undefined }, // 0xB9
     Opcode { mnemonic: "CP", bytes: 1,     immediate: true, execute: undefined }, // 0xBA
@@ -635,20 +635,85 @@ pub fn add_8bit(cpu: &mut Cpu, a: u8, b: u8) -> u8
 pub fn adc_8bit(cpu: &mut Cpu, a: u8, b: u8) -> u8 
 {
     let carry_in = if cpu.get_flags('C') { 1 } else { 0 };
-
-    let result16 = (a as u16) + (b as u16) + (carry_in as u16);
-    let result = result16 as u8;
+    let result = a.wrapping_add(b).wrapping_add(carry_in);
 
     let half_carry = ((a & 0x0F) + (b & 0x0F) + carry_in) > 0x0F;
-    let carry = result16 > 0xFF;
+    let carry_out = (a as u16) + (b as u16) + (carry_in as u16) > 0xFF;
 
     cpu.set_flags('Z', result == 0);
     cpu.set_flags('N', false);
     cpu.set_flags('H', half_carry);
-    cpu.set_flags('C', carry);
+    cpu.set_flags('C', carry_out);
 
     result
 
+}
+
+pub fn sub_8bit(cpu: &mut Cpu, a: u8, b: u8) -> u8 
+{
+    let (result, borrow) = a.overflowing_sub(b);
+
+    // Half-carry (borrow from bit 4)
+    let half_borrow = (a & 0x0F) < (b & 0x0F);
+
+    cpu.set_flags('Z', result == 0);
+    cpu.set_flags('N', true);
+    cpu.set_flags('H', half_borrow);
+    cpu.set_flags('C', borrow);
+
+    result
+}
+
+pub fn sbc_8bit(cpu: &mut Cpu, a: u8, b: u8) -> u8 
+{
+    let carry_in = if cpu.get_flags('C') { 1 } else { 0 };
+
+    // Subtract b and carry from a
+    let (intermediate, borrow1) = a.overflowing_sub(b);
+    let (result, borrow2) = intermediate.overflowing_sub(carry_in);
+
+    // Half-carry (borrow from bit 4)
+    let half_borrow = ((a & 0x0F).wrapping_sub((b & 0x0F) + carry_in)) & 0x10 != 0;
+
+    cpu.set_flags('Z', result == 0);
+    cpu.set_flags('N', true);
+    cpu.set_flags('H', half_borrow);
+    cpu.set_flags('C', borrow1 || borrow2);
+
+    result
+}
+
+pub fn xor_8bit(cpu: &mut Cpu, a: u8, b:u8) -> u8
+{
+    let result =  a ^ b;
+    cpu.set_flags('Z', result == 0);
+    cpu.set_flags('N', false);
+    cpu.set_flags('H', false);
+    cpu.set_flags('C', false);
+
+    result
+}
+
+pub fn and_8bit(cpu: &mut Cpu, a: u8, b:u8) -> u8
+{
+    let result = a & b;
+    cpu.set_flags('Z', result == 0);
+    cpu.set_flags('N', false);
+    cpu.set_flags('H', true);
+    cpu.set_flags('C', false);
+
+    result
+}
+
+pub fn or_8bit(cpu: &mut Cpu, a:u8, b:u8) -> u8
+{
+        let result =  a | b;
+    cpu.set_flags('Z', result == 0);
+    cpu.set_flags('N', false);
+    cpu.set_flags('H', false);
+    cpu.set_flags('C', false);
+
+    result
 }
 
 pub fn read_u16_from_pc(cpu: &mut Cpu) -> u16
@@ -2089,7 +2154,7 @@ pub fn add_a_hl(cpu: &mut Cpu) -> u8
     let val = cpu.inter.read_byte(hl);
     let result = add_8bit(cpu, a, val);
     cpu.set_register_8(result, 'A');
-    8 // cycles
+    8 
 }
 
 //0x87
@@ -2191,23 +2256,509 @@ pub fn adc_a_l(cpu: &mut Cpu) -> u8
 //0x8E
 pub fn adc_a_hl(cpu: &mut Cpu) -> u8
 {
+    let a = cpu.get_register_8('A');
+    let hl = cpu.get_register_16("HL");
+    let val = cpu.inter.read_byte(hl);
+    let result = adc_8bit(cpu, a, val);
+    cpu.set_register_8(result, 'A');
+    8 
+}
+
+//0x8F
+pub fn adc_a_a(cpu: &mut Cpu) -> u8
+{
+    let a = cpu.get_register_8('A');
+    let result = adc_8bit(cpu, a, a);
+
+    cpu.set_register_8(result, 'A');     
+
     4
 }
 
-//0x8E
-pub fn adc_a_a(cpu: &mut Cpu) -> u8
+
+//0x90
+pub fn sub_b(cpu: &mut Cpu) -> u8
 {
+    let a = cpu.get_register_8('A');
+    let b = cpu.get_register_8('B');
+
+    let result = sub_8bit(cpu, a, b);
+
+    cpu.set_register_8(result, 'A');     
+
     4
+}
+
+//0x91
+pub fn sub_c(cpu: &mut Cpu) -> u8
+{
+    let a = cpu.get_register_8('A');
+    let c = cpu.get_register_8('C');
+
+    let result = sub_8bit(cpu, a, c);
+
+    cpu.set_register_8(result, 'A');     
+
+    4
+}
+
+//0x92
+pub fn sub_d(cpu: &mut Cpu) -> u8
+{
+    let a = cpu.get_register_8('A');
+    let d = cpu.get_register_8('D');
+
+    let result = sub_8bit(cpu, a, d);
+
+    cpu.set_register_8(result, 'A');     
+
+    4
+}
+
+//0x93
+pub fn sub_e(cpu: &mut Cpu) -> u8
+{
+    let a = cpu.get_register_8('A');
+    let e = cpu.get_register_8('E');
+
+    let result = sub_8bit(cpu, a, e);
+
+    cpu.set_register_8(result, 'A');     
+
+    4
+}
+
+//0x94
+pub fn sub_h(cpu: &mut Cpu) -> u8
+{
+    let a = cpu.get_register_8('A');
+    let h = cpu.get_register_8('H');
+
+    let result = sub_8bit(cpu, a, h);
+
+    cpu.set_register_8(result, 'A');     
+
+    4
+}
+
+//0x95
+pub fn sub_l(cpu: &mut Cpu) -> u8
+{
+    let a = cpu.get_register_8('A');
+    let l = cpu.get_register_8('L');
+
+    let result = sub_8bit(cpu, a, l);
+
+    cpu.set_register_8(result, 'A');     
+
+    4
+}
+
+//0x96
+pub fn sub_hl(cpu: &mut Cpu) -> u8
+{
+    let a = cpu.get_register_8('A');
+    let hl = cpu.get_register_16("HL");
+    let val = cpu.inter.read_byte(hl);
+    let result = sub_8bit(cpu, a, val);
+    cpu.set_register_8(result, 'A');
+    8 
+}
+
+//0x97
+pub fn sub_a(cpu: &mut Cpu) -> u8
+{
+    let a = cpu.get_register_8('A');
+    let result = sub_8bit(cpu, a, a);
+
+    cpu.set_register_8(result, 'A');     
+
+    4
+}
+
+//0x98
+pub fn sbc_b(cpu: &mut Cpu) -> u8
+{
+    let a = cpu.get_register_8('A');
+    let b  = cpu.get_register_8('B');
+
+    let result = sbc_8bit(cpu, a, b);
+
+    cpu.set_register_8(result, 'A');     
+
+    4
+}
+
+//0x99
+pub fn sbc_c(cpu: &mut Cpu) -> u8
+{
+    let a = cpu.get_register_8('A');
+    let c  = cpu.get_register_8('C');
+
+    let result = sbc_8bit(cpu, a, c);
+
+    cpu.set_register_8(result, 'A');     
+
+    4
+}
+
+//0x9A
+pub fn sbc_d(cpu: &mut Cpu) -> u8
+{
+    let a = cpu.get_register_8('A');
+    let d  = cpu.get_register_8('D');
+
+    let result = sbc_8bit(cpu, a, d);
+
+    cpu.set_register_8(result, 'A');     
+
+    4
+}
+
+//0x9B
+pub fn sbc_e(cpu: &mut Cpu) -> u8
+{
+    let a = cpu.get_register_8('A');
+    let e  = cpu.get_register_8('E');
+
+    let result = sbc_8bit(cpu, a, e);
+
+    cpu.set_register_8(result, 'A');     
+
+    4
+}
+
+//0x9C
+pub fn sbc_h(cpu: &mut Cpu) -> u8
+{
+    let a = cpu.get_register_8('A');
+    let h  = cpu.get_register_8('H');
+
+    let result = sbc_8bit(cpu, a, h);
+
+    cpu.set_register_8(result, 'A');     
+
+    4
+}
+
+//0x9D
+pub fn sbc_l(cpu: &mut Cpu) -> u8
+{
+    let a = cpu.get_register_8('A');
+    let l  = cpu.get_register_8('L');
+
+    let result = sbc_8bit(cpu, a, l);
+
+    cpu.set_register_8(result, 'A');     
+
+    4
+}
+
+//0x9E
+pub fn sbc_hl(cpu: &mut Cpu) -> u8
+{
+    let a = cpu.get_register_8('A');
+    let hl = cpu.get_register_16("HL");
+    let val = cpu.inter.read_byte(hl);
+    let result = sbc_8bit(cpu, a, val);
+    cpu.set_register_8(result, 'A');
+    8 
+}
+
+//0x9F
+pub fn sbc_a(cpu: &mut Cpu) -> u8
+{
+    let a = cpu.get_register_8('A');
+    let result = sbc_8bit(cpu, a, a);
+
+    cpu.set_register_8(result, 'A');     
+
+    4
+}
+
+//0xA0
+pub fn and_b(cpu: &mut Cpu) -> u8
+{
+    let a = cpu.get_register_8('A');
+    let b = cpu.get_register_8('B');
+
+    let result = and_8bit(cpu, a, b);
+    cpu.set_register_8(result, 'A');
+
+    4
+}
+
+//0xA1
+pub fn and_c(cpu: &mut Cpu) -> u8
+{
+    let a = cpu.get_register_8('A');
+    let c = cpu.get_register_8('C');
+
+    let result = and_8bit(cpu, a, c);
+    cpu.set_register_8(result, 'A');
+
+    4
+}
+
+//0xA2
+pub fn and_d(cpu: &mut Cpu) -> u8
+{
+    let a = cpu.get_register_8('A');
+    let d = cpu.get_register_8('D');
+
+    let result = and_8bit(cpu, a, d);
+    cpu.set_register_8(result, 'A');
+
+    4
+}
+
+//0xA3
+pub fn and_e(cpu: &mut Cpu) -> u8
+{
+    let a = cpu.get_register_8('A');
+    let e = cpu.get_register_8('E');
+
+    let result = and_8bit(cpu, a, e);
+    cpu.set_register_8(result, 'A');
+
+    4
+}
+
+//0xA4
+pub fn and_h(cpu: &mut Cpu) -> u8
+{
+    let a = cpu.get_register_8('A');
+    let h = cpu.get_register_8('H');
+
+    let result = and_8bit(cpu, a, h);
+    cpu.set_register_8(result, 'A');
+
+    4
+}
+
+//0xA5
+pub fn and_l(cpu: &mut Cpu) -> u8
+{
+    let a = cpu.get_register_8('A');
+    let l = cpu.get_register_8('L');
+
+    let result = and_8bit(cpu, a, l);
+    cpu.set_register_8(result, 'A');
+
+    4
+}
+
+//0xA6
+pub fn and_hl(cpu: &mut Cpu) -> u8
+{
+    let a = cpu.get_register_8('A');
+    let hl = cpu.get_register_16("HL");
+    let val = cpu.inter.read_byte(hl);
+    let result = and_8bit(cpu, a, val);
+    cpu.set_register_8(result, 'A');
+
+    8 
+}
+
+//0xA7
+pub fn and_a(cpu: &mut Cpu) -> u8
+{
+    let a = cpu.get_register_8('A');
+
+    let result = and_8bit(cpu, a, a);
+    cpu.set_register_8(result, 'A');
+
+    4
+}
+
+//0xA8
+pub fn xor_b(cpu: &mut Cpu) -> u8
+{
+    let a = cpu.get_register_8('A');
+    let b = cpu.get_register_8('B');
+
+    let result = xor_8bit(cpu, a, b);
+    cpu.set_register_8(result, 'A');
+
+    4
+}
+
+//0xA9
+pub fn xor_c(cpu: &mut Cpu) -> u8
+{
+    let a = cpu.get_register_8('A');
+    let c = cpu.get_register_8('C');
+
+    let result = xor_8bit(cpu, a, c);
+    cpu.set_register_8(result, 'A');
+
+    4
+}
+
+//0xAA
+pub fn xor_d(cpu: &mut Cpu) -> u8
+{
+    let a = cpu.get_register_8('A');
+    let d = cpu.get_register_8('D');
+
+    let result = xor_8bit(cpu, a, d);
+    cpu.set_register_8(result, 'A');
+
+    4
+}
+
+//0xAB
+pub fn xor_e(cpu: &mut Cpu) -> u8
+{
+    let a = cpu.get_register_8('A');
+    let e = cpu.get_register_8('E');
+
+    let result = xor_8bit(cpu, a, e);
+    cpu.set_register_8(result, 'A');
+
+    4
+}
+
+//0xAC
+pub fn xor_h(cpu: &mut Cpu) -> u8
+{
+    let a = cpu.get_register_8('A');
+    let h = cpu.get_register_8('H');
+
+    let result = xor_8bit(cpu, a, h);
+    cpu.set_register_8(result, 'A');
+
+    4
+}
+
+//0xAD
+pub fn xor_l(cpu: &mut Cpu) -> u8
+{
+    let a = cpu.get_register_8('A');
+    let l = cpu.get_register_8('L');
+
+    let result = xor_8bit(cpu, a, l);
+    cpu.set_register_8(result, 'A');
+
+    4
+}
+
+//0xAE
+pub fn xor_hl(cpu: &mut Cpu) -> u8
+{
+    let a = cpu.get_register_8('A');
+    let hl = cpu.get_register_16("HL");
+    let val = cpu.inter.read_byte(hl);
+
+    let result = xor_8bit(cpu, a, val);
+    cpu.set_register_8(result, 'A');
+
+    8
 }
 
 //0xAF
-pub fn in_xor_a(cpu: &mut Cpu) -> u8
+pub fn xor_a(cpu: &mut Cpu) -> u8
 {
-    cpu.regs.A ^= cpu.regs.A;
-    cpu.set_flags('Z', true);
-    cpu.set_flags('N', false);
-    cpu.set_flags('H', false);
-    cpu.set_flags('C', false);
+    let a = cpu.get_register_8('A');
+
+    let result = xor_8bit(cpu, a, a);
+    cpu.set_register_8(result, 'A');
+
+    4
+}
+
+//0xB0
+pub fn or_b(cpu: &mut Cpu) -> u8
+{
+    let a = cpu.get_register_8('A');
+    let b = cpu.get_register_8('B');
+
+    let result = or_8bit(cpu, a, b);
+    cpu.set_register_8(result, 'A');
+
+    4
+}
+
+//0xB1
+pub fn or_c(cpu: &mut Cpu) -> u8
+{
+    let a = cpu.get_register_8('A');
+    let c = cpu.get_register_8('C');
+
+    let result = or_8bit(cpu, a, c);
+    cpu.set_register_8(result, 'A');
+
+    4
+}
+
+//0xB2
+pub fn or_d(cpu: &mut Cpu) -> u8
+{
+    let a = cpu.get_register_8('A');
+    let d = cpu.get_register_8('D');
+
+    let result = or_8bit(cpu, a, d);
+    cpu.set_register_8(result, 'A');
+
+    4
+}
+
+//0xB3
+pub fn or_e(cpu: &mut Cpu) -> u8
+{
+    let a = cpu.get_register_8('A');
+    let e = cpu.get_register_8('E');
+
+    let result = or_8bit(cpu, a, e);
+    cpu.set_register_8(result, 'A');
+
+    4
+}
+
+//0xB4
+pub fn or_h(cpu: &mut Cpu) -> u8
+{
+    let a = cpu.get_register_8('A');
+    let h = cpu.get_register_8('H');
+
+    let result = or_8bit(cpu, a, h);
+    cpu.set_register_8(result, 'A');
+
+    4
+}
+
+//0xB5
+pub fn or_l(cpu: &mut Cpu) -> u8
+{
+    let a = cpu.get_register_8('A');
+    let l = cpu.get_register_8('L');
+
+    let result = or_8bit(cpu, a, l);
+    cpu.set_register_8(result, 'A');
+
+    4
+}
+
+//0xB6
+pub fn or_hl(cpu: &mut Cpu) -> u8
+{
+    let a = cpu.get_register_8('A');
+    let hl = cpu.get_register_16("HL");
+    let val = cpu.inter.read_byte(hl);
+
+    let result = xor_8bit(cpu, a, val);
+    cpu.set_register_8(result, 'A');
+
+    8
+}
+
+//0xB7
+pub fn or_a(cpu: &mut Cpu) -> u8
+{
+    let a = cpu.get_register_8('A');
+
+    let result = or_8bit(cpu, a, a);
+    cpu.set_register_8(result, 'A');
 
     4
 }
@@ -4842,7 +5393,7 @@ mod tests
         cpu.set_register_16(0xC123, "HL");
         cpu.set_register_8(0x00, 'A');
     
-        let cycles = ld_a_hl(&mut cpu);
+        let cycles = add_a_hl(&mut cpu);
     
         assert_eq!(cycles, 8);
         assert_eq!(cpu.get_register_8('A'), 0x7F);
@@ -5006,6 +5557,924 @@ mod tests
         assert_eq!(cycles, 4);
     }
 
+    #[test]
+    fn test_adc_a_hl()
+    {
+        let mut memory: Vec<u8> = vec![0; 0x10000];
+        memory[0xC123] = 0x8F; // value to load
+    
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_flags('C',true);
+
+    
+        cpu.set_register_16(0xC123, "HL");
+        cpu.set_register_8(0x91, 'A');
+    
+        let cycles = adc_a_hl(&mut cpu);
+
+        assert_eq!(cpu.get_register_8('A'), 0x21); 
+        assert_eq!(cpu.get_flags('Z'), false);          
+        assert_eq!(cpu.get_flags('N'), false);           
+        assert_eq!(cpu.get_flags('H'), true);            
+        assert_eq!(cpu.get_flags('C'), true);   
+        assert_eq!(cycles, 8);
+    }
+
+    //0x8F
+    #[test]
+    fn test_adc_a_a() 
+    {
+        let memory = vec![0; 0x10000];
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_register_8(0x8F, 'A');
+        cpu.set_flags('C', false);
+
+        // Execute ADC A, A (adds A + A + carry)
+        let cycles = adc_a_a(&mut cpu);
+
+        assert_eq!(cpu.get_register_8('A'), 0x1E); // 0x8F + 0x8F = 0x11E, low byte 0x1E
+        assert_eq!(cpu.get_flags('Z'), false);
+        assert_eq!(cpu.get_flags('N'), false);
+        assert_eq!(cpu.get_flags('H'), true);
+        assert_eq!(cpu.get_flags('C'), true);
+        assert_eq!(cycles, 4);
+    }
+
+    //0x90
+    #[test]
+    fn test_sub_b()
+    {
+        let memory = vec![0; 0x10000];
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_register_8(0x20, 'A');
+        cpu.set_register_8(0x02, 'B');
+
+        let cycles = sub_b(&mut cpu);
+
+        assert_eq!(cpu.get_register_8('A'), 0x1E); 
+        assert_eq!(cpu.get_flags('Z'), false);          
+        assert_eq!(cpu.get_flags('N'), true);           
+        assert_eq!(cpu.get_flags('H'), true);            
+        assert_eq!(cpu.get_flags('C'), false);           
+        assert_eq!(cycles, 4);
+    }
+
+
+    //0x91
+    #[test]
+    fn test_sub_c()
+    {
+        let memory = vec![0; 0x10000];
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_register_8(0x20, 'A');
+        cpu.set_register_8(0x02, 'C');
+
+        let cycles = sub_c(&mut cpu);
+
+        assert_eq!(cpu.get_register_8('A'), 0x1E); 
+        assert_eq!(cpu.get_flags('Z'), false);          
+        assert_eq!(cpu.get_flags('N'), true);           
+        assert_eq!(cpu.get_flags('H'), true);            
+        assert_eq!(cpu.get_flags('C'), false);           
+        assert_eq!(cycles, 4);
+    }
+
+    //0x92
+    #[test]
+    fn test_sub_d()
+    {
+        let memory = vec![0; 0x10000];
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_register_8(0x20, 'A');
+        cpu.set_register_8(0x02, 'D');
+
+        let cycles = sub_d(&mut cpu);
+
+        assert_eq!(cpu.get_register_8('A'), 0x1E); 
+        assert_eq!(cpu.get_flags('Z'), false);          
+        assert_eq!(cpu.get_flags('N'), true);           
+        assert_eq!(cpu.get_flags('H'), true);            
+        assert_eq!(cpu.get_flags('C'), false);           
+        assert_eq!(cycles, 4);
+    }
+
+    //0x93
+    #[test]
+    fn test_sub_e()
+    {
+        let memory = vec![0; 0x10000];
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_register_8(0x20, 'A');
+        cpu.set_register_8(0x02, 'E');
+
+        let cycles = sub_e(&mut cpu);
+
+        assert_eq!(cpu.get_register_8('A'), 0x1E); 
+        assert_eq!(cpu.get_flags('Z'), false);          
+        assert_eq!(cpu.get_flags('N'), true);           
+        assert_eq!(cpu.get_flags('H'), true);            
+        assert_eq!(cpu.get_flags('C'), false);           
+        assert_eq!(cycles, 4);
+    }
+
+    //0x94
+    #[test]
+    fn test_sub_h()
+    {
+        let memory = vec![0; 0x10000];
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_register_8(0x20, 'A');
+        cpu.set_register_8(0x02, 'H');
+
+        let cycles = sub_h(&mut cpu);
+
+        assert_eq!(cpu.get_register_8('A'), 0x1E); 
+        assert_eq!(cpu.get_flags('Z'), false);          
+        assert_eq!(cpu.get_flags('N'), true);           
+        assert_eq!(cpu.get_flags('H'), true);            
+        assert_eq!(cpu.get_flags('C'), false);           
+        assert_eq!(cycles, 4);
+    }
+
+    //0x95
+    #[test]
+    fn test_sub_l()
+    {
+        let memory = vec![0; 0x10000];
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_register_8(0x20, 'A');
+        cpu.set_register_8(0x02, 'L');
+
+        let cycles = sub_l(&mut cpu);
+
+        assert_eq!(cpu.get_register_8('A'), 0x1E); 
+        assert_eq!(cpu.get_flags('Z'), false);          
+        assert_eq!(cpu.get_flags('N'), true);           
+        assert_eq!(cpu.get_flags('H'), true);            
+        assert_eq!(cpu.get_flags('C'), false);           
+        assert_eq!(cycles, 4);
+    }
+
+    //0x96
+    #[test]
+    fn test_sub_hl()
+    {
+        let mut memory: Vec<u8> = vec![0; 0x10000];
+        memory[0xC123] = 0x02; // value to load
+    
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+    
+        cpu.set_register_16(0xC123, "HL");
+        cpu.set_register_8(0x20, 'A');
+    
+        let cycles = sub_hl(&mut cpu);
+    
+        assert_eq!(cycles, 8);
+        assert_eq!(cpu.get_register_8('A'), 0x1E);
+    }
+
+
+    //0x97
+    #[test]
+    fn test_sub_a()
+    {
+        let memory = vec![0; 0x10000];
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_register_8(0x20, 'A');
+
+        let cycles = sub_a(&mut cpu);
+
+        assert_eq!(cpu.get_register_8('A'), 0x0); 
+        assert_eq!(cpu.get_flags('Z'), true);          
+        assert_eq!(cpu.get_flags('N'), true);           
+        assert_eq!(cpu.get_flags('H'), false);            
+        assert_eq!(cpu.get_flags('C'), false);           
+        assert_eq!(cycles, 4);
+    }
+
+    //0x98
+    #[test]
+    fn test_sbc_b() 
+    {
+        let memory = vec![0; 0x10000];
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_register_8(0x50, 'A'); 
+        cpu.set_register_8(0x20, 'B'); 
+        cpu.set_flags('C', true);      
+
+        let cycles = sbc_b(&mut cpu);
+
+        assert_eq!(cpu.get_register_8('A'), 0x2F); 
+        assert_eq!(cpu.get_flags('Z'), false);
+        assert_eq!(cpu.get_flags('N'), true);
+        assert_eq!(cpu.get_flags('H'), true);
+        assert_eq!(cpu.get_flags('C'), false);
+        assert_eq!(cycles, 4);
+    }
+
+    //0x99
+    #[test]
+    fn test_sbc_c() 
+    {
+        let memory = vec![0; 0x10000];
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_register_8(0x50, 'A'); 
+        cpu.set_register_8(0x20, 'C'); 
+        cpu.set_flags('C', true);      
+
+        let cycles = sbc_c(&mut cpu);
+
+        assert_eq!(cpu.get_register_8('A'), 0x2F); 
+        assert_eq!(cpu.get_flags('Z'), false);
+        assert_eq!(cpu.get_flags('N'), true);
+        assert_eq!(cpu.get_flags('H'), true);
+        assert_eq!(cpu.get_flags('C'), false);
+        assert_eq!(cycles, 4);
+    }
+
+    //0x9A
+    #[test]
+    fn test_sbc_d() 
+    {
+        let memory = vec![0; 0x10000];
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_register_8(0x50, 'A'); 
+        cpu.set_register_8(0x20, 'D'); 
+        cpu.set_flags('C', true);      
+
+        let cycles = sbc_d(&mut cpu);
+
+        assert_eq!(cpu.get_register_8('A'), 0x2F); 
+        assert_eq!(cpu.get_flags('Z'), false);
+        assert_eq!(cpu.get_flags('N'), true);
+        assert_eq!(cpu.get_flags('H'), true);
+        assert_eq!(cpu.get_flags('C'), false);
+        assert_eq!(cycles, 4);
+    }
+
+    //0x9B
+    #[test]
+    fn test_sbc_e() 
+    {
+        let memory = vec![0; 0x10000];
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_register_8(0x50, 'A'); 
+        cpu.set_register_8(0x20, 'E'); 
+        cpu.set_flags('C', true);      
+
+        let cycles = sbc_e(&mut cpu);
+
+        assert_eq!(cpu.get_register_8('A'), 0x2F); 
+        assert_eq!(cpu.get_flags('Z'), false);
+        assert_eq!(cpu.get_flags('N'), true);
+        assert_eq!(cpu.get_flags('H'), true);
+        assert_eq!(cpu.get_flags('C'), false);
+        assert_eq!(cycles, 4);
+    }
+
+    //0x9C
+    #[test]
+    fn test_sbc_h() 
+    {
+        let memory = vec![0; 0x10000];
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_register_8(0x50, 'A'); 
+        cpu.set_register_8(0x20, 'H'); 
+        cpu.set_flags('C', true);      
+
+        let cycles = sbc_h(&mut cpu);
+
+        assert_eq!(cpu.get_register_8('A'), 0x2F); 
+        assert_eq!(cpu.get_flags('Z'), false);
+        assert_eq!(cpu.get_flags('N'), true);
+        assert_eq!(cpu.get_flags('H'), true);
+        assert_eq!(cpu.get_flags('C'), false);
+        assert_eq!(cycles, 4);
+    }
+
+    //0x9D
+    #[test]
+    fn test_sbc_l() 
+    {
+        let memory = vec![0; 0x10000];
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_register_8(0x50, 'A'); 
+        cpu.set_register_8(0x20, 'L'); 
+        cpu.set_flags('C', true);      
+
+        let cycles = sbc_l(&mut cpu);
+
+        assert_eq!(cpu.get_register_8('A'), 0x2F); 
+        assert_eq!(cpu.get_flags('Z'), false);
+        assert_eq!(cpu.get_flags('N'), true);
+        assert_eq!(cpu.get_flags('H'), true);
+        assert_eq!(cpu.get_flags('C'), false);
+        assert_eq!(cycles, 4);
+    }
+
+    //0x9E
+    #[test]
+    fn test_sbc_hl()
+    {
+        let mut memory: Vec<u8> = vec![0; 0x10000];
+        memory[0xC123] = 0x20; // value to load
+    
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_flags('C',true);
+
+    
+        cpu.set_register_16(0xC123, "HL");
+        cpu.set_register_8(0x50, 'A');
+    
+        let cycles = sbc_hl(&mut cpu);
+
+        assert_eq!(cpu.get_register_8('A'), 0x2F); 
+        assert_eq!(cpu.get_flags('Z'), false);          
+        assert_eq!(cpu.get_flags('N'), true);           
+        assert_eq!(cpu.get_flags('H'), true);            
+        assert_eq!(cpu.get_flags('C'), false);   
+        assert_eq!(cycles, 8);
+    }
+
+    //0x9F
+    #[test]
+    fn test_sbc_a() 
+    {
+        let memory = vec![0; 0x10000];
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_register_8(0x50, 'A'); 
+        cpu.set_flags('C', true);      
+
+        let cycles = sbc_a(&mut cpu);
+
+        assert_eq!(cpu.get_register_8('A'), 0xFF); 
+        assert_eq!(cpu.get_flags('Z'), false);
+        assert_eq!(cpu.get_flags('N'), true);
+        assert_eq!(cpu.get_flags('H'), true);
+        assert_eq!(cpu.get_flags('C'), true);
+        assert_eq!(cycles, 4);
+    }
+
+    //0xA0
+    #[test]
+    fn test_and_b() 
+    {
+        let memory = vec![0; 0x10000];
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_register_8(0xFF, 'A'); 
+        cpu.set_register_8(0xFF, 'B'); 
+
+        let cycles = and_b(&mut cpu);
+
+        assert_eq!(cpu.get_register_8('A'), 0xFF); 
+        assert_eq!(cpu.get_flags('Z'), false);
+        assert_eq!(cpu.get_flags('N'), false);
+        assert_eq!(cpu.get_flags('H'), true);
+        assert_eq!(cpu.get_flags('C'), false);
+        assert_eq!(cycles, 4);
+    }
+
+    //0xA1
+    #[test]
+    fn test_and_c() 
+    {
+        let memory = vec![0; 0x10000];
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_register_8(0xFF, 'A'); 
+        cpu.set_register_8(0xFF, 'C'); 
+
+        let cycles = and_c(&mut cpu);
+
+        assert_eq!(cpu.get_register_8('A'), 0xFF); 
+        assert_eq!(cpu.get_flags('Z'), false);
+        assert_eq!(cpu.get_flags('N'), false);
+        assert_eq!(cpu.get_flags('H'), true);
+        assert_eq!(cpu.get_flags('C'), false);
+        assert_eq!(cycles, 4);
+    }
+
+    //0xA2
+    #[test]
+    fn test_and_d() 
+    {
+        let memory = vec![0; 0x10000];
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_register_8(0xFF, 'A'); 
+        cpu.set_register_8(0xFF, 'D'); 
+
+        let cycles = and_d(&mut cpu);
+
+        assert_eq!(cpu.get_register_8('A'), 0xFF); 
+        assert_eq!(cpu.get_flags('Z'), false);
+        assert_eq!(cpu.get_flags('N'), false);
+        assert_eq!(cpu.get_flags('H'), true);
+        assert_eq!(cpu.get_flags('C'), false);
+        assert_eq!(cycles, 4);
+    }
+
+    //0xA3
+    #[test]
+    fn test_and_e() 
+    {
+        let memory = vec![0; 0x10000];
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_register_8(0xFF, 'A'); 
+        cpu.set_register_8(0xFF, 'E'); 
+
+        let cycles = and_e(&mut cpu);
+
+        assert_eq!(cpu.get_register_8('A'), 0xFF); 
+        assert_eq!(cpu.get_flags('Z'), false);
+        assert_eq!(cpu.get_flags('N'), false);
+        assert_eq!(cpu.get_flags('H'), true);
+        assert_eq!(cpu.get_flags('C'), false);
+        assert_eq!(cycles, 4);
+    }
+
+    //0xA4
+    #[test]
+    fn test_and_h() 
+    {
+        let memory = vec![0; 0x10000];
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_register_8(0xFF, 'A'); 
+        cpu.set_register_8(0xFF, 'H'); 
+
+        let cycles = and_h(&mut cpu);
+
+        assert_eq!(cpu.get_register_8('A'), 0xFF); 
+        assert_eq!(cpu.get_flags('Z'), false);
+        assert_eq!(cpu.get_flags('N'), false);
+        assert_eq!(cpu.get_flags('H'), true);
+        assert_eq!(cpu.get_flags('C'), false);
+        assert_eq!(cycles, 4);
+    }
+
+    //0xA5
+    #[test]
+    fn test_and_l() 
+    {
+        let memory = vec![0; 0x10000];
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_register_8(0xFF, 'A'); 
+        cpu.set_register_8(0xFF, 'L'); 
+
+        let cycles = and_l(&mut cpu);
+
+        assert_eq!(cpu.get_register_8('A'), 0xFF); 
+        assert_eq!(cpu.get_flags('Z'), false);
+        assert_eq!(cpu.get_flags('N'), false);
+        assert_eq!(cpu.get_flags('H'), true);
+        assert_eq!(cpu.get_flags('C'), false);
+        assert_eq!(cycles, 4);
+    }
+
+
+    //0xA6
+    #[test]
+    fn test_and_hl()
+    {
+        let mut memory: Vec<u8> = vec![0; 0x10000];
+        memory[0xC123] = 0xFF; // value to load
+    
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+    
+        cpu.set_register_16(0xC123, "HL");
+        cpu.set_register_8(0xFF, 'A');
+
+        let cycles = and_hl(&mut cpu);
+
+        assert_eq!(cpu.get_register_8('A'), 0xFF); 
+        assert_eq!(cpu.get_flags('Z'), false);
+        assert_eq!(cpu.get_flags('N'), false);
+        assert_eq!(cpu.get_flags('H'), true);
+        assert_eq!(cpu.get_flags('C'), false);
+        assert_eq!(cycles, 8);
+    }
+
+    //0xA7
+    #[test]
+    fn test_and_a() 
+    {
+        let memory = vec![0; 0x10000];
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_register_8(0xFF, 'A'); 
+
+        let cycles = and_a(&mut cpu);
+
+        assert_eq!(cpu.get_register_8('A'), 0xFF); 
+        assert_eq!(cpu.get_flags('Z'), false);
+        assert_eq!(cpu.get_flags('N'), false);
+        assert_eq!(cpu.get_flags('H'), true);
+        assert_eq!(cpu.get_flags('C'), false);
+        assert_eq!(cycles, 4);
+    }
+
+
+    //0xA8
+    #[test]
+    fn test_xor_b() 
+    {
+        let memory = vec![0; 0x10000];
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_register_8(0x0F, 'A');
+        cpu.set_register_8(0x0F, 'B'); 
+ 
+
+        let cycles = xor_b(&mut cpu);
+
+        assert_eq!(cpu.get_register_8('A'), 0x00); 
+        assert_eq!(cpu.get_flags('Z'), true);
+        assert_eq!(cpu.get_flags('N'), false);
+        assert_eq!(cpu.get_flags('H'), false);
+        assert_eq!(cpu.get_flags('C'), false);
+        assert_eq!(cycles, 4);
+    }
+
+    //0xA9
+    #[test]
+    fn test_xor_c() 
+    {
+        let memory = vec![0; 0x10000];
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_register_8(0x0F, 'A');
+        cpu.set_register_8(0x0F, 'C'); 
+ 
+
+        let cycles = xor_c(&mut cpu);
+
+        assert_eq!(cpu.get_register_8('A'), 0x00); 
+        assert_eq!(cpu.get_flags('Z'), true);
+        assert_eq!(cpu.get_flags('N'), false);
+        assert_eq!(cpu.get_flags('H'), false);
+        assert_eq!(cpu.get_flags('C'), false);
+        assert_eq!(cycles, 4);
+    }
+
+    //0xAA
+    #[test]
+    fn test_xor_d() 
+    {
+        let memory = vec![0; 0x10000];
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_register_8(0x0F, 'A');
+        cpu.set_register_8(0x0F, 'D'); 
+ 
+
+        let cycles = xor_d(&mut cpu);
+
+        assert_eq!(cpu.get_register_8('A'), 0x00); 
+        assert_eq!(cpu.get_flags('Z'), true);
+        assert_eq!(cpu.get_flags('N'), false);
+        assert_eq!(cpu.get_flags('H'), false);
+        assert_eq!(cpu.get_flags('C'), false);
+        assert_eq!(cycles, 4);
+    }
+
+    //0xAB
+    #[test]
+    fn test_xor_e() 
+    {
+        let memory = vec![0; 0x10000];
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_register_8(0x0F, 'A');
+        cpu.set_register_8(0x0F, 'E'); 
+ 
+
+        let cycles = xor_e(&mut cpu);
+
+        assert_eq!(cpu.get_register_8('A'), 0x00); 
+        assert_eq!(cpu.get_flags('Z'), true);
+        assert_eq!(cpu.get_flags('N'), false);
+        assert_eq!(cpu.get_flags('H'), false);
+        assert_eq!(cpu.get_flags('C'), false);
+        assert_eq!(cycles, 4);
+    }
+
+    //0xAC
+    #[test]
+    fn test_xor_h() 
+    {
+        let memory = vec![0; 0x10000];
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_register_8(0x0F, 'A');
+        cpu.set_register_8(0x0F, 'H'); 
+ 
+
+        let cycles = xor_h(&mut cpu);
+
+        assert_eq!(cpu.get_register_8('A'), 0x00); 
+        assert_eq!(cpu.get_flags('Z'), true);
+        assert_eq!(cpu.get_flags('N'), false);
+        assert_eq!(cpu.get_flags('H'), false);
+        assert_eq!(cpu.get_flags('C'), false);
+        assert_eq!(cycles, 4);
+    }
+
+    //0xAD
+    #[test]
+    fn test_xor_l() 
+    {
+        let memory = vec![0; 0x10000];
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_register_8(0x0F, 'A');
+        cpu.set_register_8(0x0F, 'L'); 
+ 
+
+        let cycles = xor_l(&mut cpu);
+
+        assert_eq!(cpu.get_register_8('A'), 0x00); 
+        assert_eq!(cpu.get_flags('Z'), true);
+        assert_eq!(cpu.get_flags('N'), false);
+        assert_eq!(cpu.get_flags('H'), false);
+        assert_eq!(cpu.get_flags('C'), false);
+        assert_eq!(cycles, 4);
+    }
+
+    //0xAE
+    #[test]
+    fn test_xor_hl()
+    {
+        let mut memory: Vec<u8> = vec![0; 0x10000];
+        memory[0xC123] = 0x0F; // value to load
+    
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+    
+        cpu.set_register_16(0xC123, "HL");
+        cpu.set_register_8(0x0F, 'A');
+
+        let cycles = xor_hl(&mut cpu);
+
+        assert_eq!(cpu.get_register_8('A'), 0x00); 
+        assert_eq!(cpu.get_flags('Z'), true);
+        assert_eq!(cpu.get_flags('N'), false);
+        assert_eq!(cpu.get_flags('H'), false);
+        assert_eq!(cpu.get_flags('C'), false);
+        assert_eq!(cycles, 8);
+    }
+
+    //0xAF
+    #[test]
+    fn test_xor_a() 
+    {
+        let memory = vec![0; 0x10000];
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_register_8(0x0F, 'A'); 
+
+        let cycles = xor_a(&mut cpu);
+
+        assert_eq!(cpu.get_register_8('A'), 0x00); 
+        assert_eq!(cpu.get_flags('Z'), true);
+        assert_eq!(cpu.get_flags('N'), false);
+        assert_eq!(cpu.get_flags('H'), false);
+        assert_eq!(cpu.get_flags('C'), false);
+        assert_eq!(cycles, 4);
+    }
+
+    //0xB0
+    #[test]
+    fn test_or_b() 
+    {
+        let memory = vec![0; 0x10000];
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_register_8(0x0F, 'A'); 
+        cpu.set_register_8(0x0F, 'B'); 
+
+
+        let cycles = or_b(&mut cpu);
+
+        assert_eq!(cpu.get_register_8('A'), 0x0F); 
+        assert_eq!(cpu.get_flags('Z'), false);
+        assert_eq!(cpu.get_flags('N'), false);
+        assert_eq!(cpu.get_flags('H'), false);
+        assert_eq!(cpu.get_flags('C'), false);
+        assert_eq!(cycles, 4);
+    }
+
+    //0xB1
+    #[test]
+    fn test_or_c() 
+    {
+        let memory = vec![0; 0x10000];
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_register_8(0x0F, 'A'); 
+        cpu.set_register_8(0x0F, 'C'); 
+
+
+        let cycles = or_c(&mut cpu);
+
+        assert_eq!(cpu.get_register_8('A'), 0x0F); 
+        assert_eq!(cpu.get_flags('Z'), false);
+        assert_eq!(cpu.get_flags('N'), false);
+        assert_eq!(cpu.get_flags('H'), false);
+        assert_eq!(cpu.get_flags('C'), false);
+        assert_eq!(cycles, 4);
+    }
+
+    //0xB2
+    #[test]
+    fn test_or_d() 
+    {
+        let memory = vec![0; 0x10000];
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_register_8(0x0F, 'A'); 
+        cpu.set_register_8(0x0F, 'D'); 
+
+
+        let cycles = or_d(&mut cpu);
+
+        assert_eq!(cpu.get_register_8('A'), 0x0F); 
+        assert_eq!(cpu.get_flags('Z'), false);
+        assert_eq!(cpu.get_flags('N'), false);
+        assert_eq!(cpu.get_flags('H'), false);
+        assert_eq!(cpu.get_flags('C'), false);
+        assert_eq!(cycles, 4);
+    }
+
+    //0xB3
+    #[test]
+    fn test_or_e() 
+    {
+        let memory = vec![0; 0x10000];
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_register_8(0x0F, 'A'); 
+        cpu.set_register_8(0x0F, 'E'); 
+
+
+        let cycles = or_e(&mut cpu);
+
+        assert_eq!(cpu.get_register_8('A'), 0x0F); 
+        assert_eq!(cpu.get_flags('Z'), false);
+        assert_eq!(cpu.get_flags('N'), false);
+        assert_eq!(cpu.get_flags('H'), false);
+        assert_eq!(cpu.get_flags('C'), false);
+        assert_eq!(cycles, 4);
+    }
+
+    //0xB4
+    #[test]
+    fn test_or_h() 
+    {
+        let memory = vec![0; 0x10000];
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_register_8(0x0F, 'A'); 
+        cpu.set_register_8(0x0F, 'H'); 
+
+
+        let cycles = or_h(&mut cpu);
+
+        assert_eq!(cpu.get_register_8('A'), 0x0F); 
+        assert_eq!(cpu.get_flags('Z'), false);
+        assert_eq!(cpu.get_flags('N'), false);
+        assert_eq!(cpu.get_flags('H'), false);
+        assert_eq!(cpu.get_flags('C'), false);
+        assert_eq!(cycles, 4);
+    }
+
+    //0xB5
+    #[test]
+    fn test_or_l() 
+    {
+        let memory = vec![0; 0x10000];
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_register_8(0xF0, 'A'); 
+        cpu.set_register_8(0x0F, 'L'); 
+
+
+        let cycles = or_l(&mut cpu);
+
+        assert_eq!(cpu.get_register_8('A'), 0xFF); 
+        assert_eq!(cpu.get_flags('Z'), false);
+        assert_eq!(cpu.get_flags('N'), false);
+        assert_eq!(cpu.get_flags('H'), false);
+        assert_eq!(cpu.get_flags('C'), false);
+        assert_eq!(cycles, 4);
+    }
+
+    //0xB6
+    #[test]
+    fn test_or_hl()
+    {
+        let mut memory: Vec<u8> = vec![0; 0x10000];
+        memory[0xC123] = 0xF0; // value to load
+    
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+    
+        cpu.set_register_16(0xC123, "HL");
+        cpu.set_register_8(0x0F, 'A');
+
+        let cycles = or_hl(&mut cpu);
+
+        assert_eq!(cpu.get_register_8('A'), 0xFF); 
+        assert_eq!(cpu.get_flags('Z'), false);
+        assert_eq!(cpu.get_flags('N'), false);
+        assert_eq!(cpu.get_flags('H'), false);
+        assert_eq!(cpu.get_flags('C'), false);
+        assert_eq!(cycles, 8);
+    }
+
+    //0xB7
+    #[test]
+    fn test_or_a() 
+    {
+        let memory = vec![0; 0x10000];
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_register_8(0x0F, 'A'); 
+
+        let cycles = or_a(&mut cpu);
+
+        assert_eq!(cpu.get_register_8('A'), 0x0F); 
+        assert_eq!(cpu.get_flags('Z'), false);
+        assert_eq!(cpu.get_flags('N'), false);
+        assert_eq!(cpu.get_flags('H'), false);
+        assert_eq!(cpu.get_flags('C'), false);
+        assert_eq!(cycles, 4);
+    }
+
+
+
+
+    
 
 
 

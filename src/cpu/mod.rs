@@ -169,8 +169,7 @@ impl Cpu
     fn push_word(&mut self, val: u16)
     {
         self.push_byte((val >> 8) as u8);
-        self.push_byte(val as u8);
-
+        self.push_byte((val & 0x00FF) as u8);
     }
 
     // incerment the stack as is the oppposite of the push method. 
@@ -232,64 +231,44 @@ impl Cpu
     // set 16 bit dual registers 
     fn set_8_to_16_conversion(&mut self, reg: &str, val: u16)
     {
-        if reg == "AF"
+        match reg 
         {
-            self.regs.A = (val >> 8) as u8;        
-            self.regs.F = (val & 0xF0) as u8;      
-        }
-        else if reg == "BC"
-        {
-            self.regs.B = (val >> 8) as u8;        
-            self.regs.C = (val & 0xFF) as u8;      
-        }
-        else if reg == "DE"
-        {
-            self.regs.D = (val >> 8) as u8;       
-            self.regs.E = (val & 0xFF) as u8;     
-        }
-        else if reg == "HL"
-        {
-            self.regs.H = (val >> 8) as u8;        
-            self.regs.L = (val & 0xFF) as u8;    
-        }
-        else
-        {
-            println!("invalid entry");
+            "AF" => {
+                self.regs.A = (val >> 8) as u8;
+                self.regs.F = (val & 0xF0) as u8; // lower 4 bits always zero
+            }
+            "BC" => {
+                self.regs.B = (val >> 8) as u8;
+                self.regs.C = (val & 0xFF) as u8;
+            }
+            "DE" => {
+                self.regs.D = (val >> 8) as u8;
+                self.regs.E = (val & 0xFF) as u8;
+            }
+            "HL" => {
+                self.regs.H = (val >> 8) as u8;
+                self.regs.L = (val & 0xFF) as u8;
+            }
+            "SP" => self.regs.SP = val,
+            "PC" => self.regs.PC = val,
+            _ => println!("invalid entry"),
         }
     }
 
     // get the 16 bit registers values
     fn get_8_to_16_conversion(&mut self, reg: &str) -> u16
     {
-        if reg == "AF"
-        {
-            let mut v = self.regs.F as u16;        
-            v |= (self.regs.A as u16) << 8;          
-            return v & 0xFFF0;                        
-        }
-        else if reg == "BC"
-        {
-            let mut v = self.regs.C as u16;          
-            v |= (self.regs.B as u16) << 8;          
-            return v;
-        }
-        else if reg == "DE"
-        {
-            let mut v = self.regs.E as u16;          
-            v |= (self.regs.D as u16) << 8;          
-            return v;
-        }
-        else if reg == "HL"
-        {
-            let mut v = self.regs.L as u16;          
-            v |= (self.regs.H as u16) << 8;          
-            return v;
-        }
-        else  
-        {
-            println!("invalid entry");
-            return 0;  
-        }
+         match reg 
+         {
+
+            "AF" => ((self.regs.A as u16) << 8) | (self.regs.F as u16 & 0xF0),
+            "BC" => ((self.regs.B as u16) << 8) | (self.regs.C as u16),
+            "DE" => ((self.regs.D as u16) << 8) | (self.regs.E as u16),
+            "HL" => ((self.regs.H as u16) << 8) | (self.regs.L as u16),
+            "SP" => self.regs.SP,
+            "PC" => self.regs.PC,
+            _ => { println!("invalid entry"); 0 }
+        }   
     }
 
     // set 16 bit register

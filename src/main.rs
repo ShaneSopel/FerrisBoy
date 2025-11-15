@@ -14,7 +14,7 @@ fn main() -> Result<()>
 {
     let mut cart = cart::Cart::new();
 
-    cart.filename = "/home/shane/rust/rustboy/roms/dmg-acid2.gb".to_string();
+    cart.filename = "/home/shane/rust/FerrisBoy/roms/dmg-acid2.gb".to_string();
     cart.cart_load()?;
 
     let inter = interconnect::Interconnect::new(cart.rom_data);

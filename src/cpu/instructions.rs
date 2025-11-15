@@ -207,12 +207,12 @@ pub const OPCODES: [Opcode; 256] =
     Opcode { mnemonic: "CP", bytes: 1,     immediate: true, execute: cp_l }, // 0xBD
     Opcode { mnemonic: "CP", bytes: 1,     immediate: false, execute: cp_hl }, // 0xBE
     Opcode { mnemonic: "CP", bytes: 1,     immediate: true, execute: cp_a }, // 0xBF
-    Opcode { mnemonic: "RET", bytes: 1,    immediate: true, execute: undefined }, // 0xC0
-    Opcode { mnemonic: "POP", bytes: 1,    immediate: true, execute: undefined }, // 0xC1
-    Opcode { mnemonic: "JP", bytes: 3,     immediate: true, execute: undefined }, // 0xC2
+    Opcode { mnemonic: "RET", bytes: 1,    immediate: true, execute: ret_nz }, // 0xC0
+    Opcode { mnemonic: "POP", bytes: 1,    immediate: true, execute: pop_bc }, // 0xC1
+    Opcode { mnemonic: "JP", bytes: 3,     immediate: true, execute: jp_nz_a16 }, // 0xC2
     Opcode { mnemonic: "JP", bytes: 3,     immediate: true, execute: jp_a16}, // 0xC3
-    Opcode { mnemonic: "CALL", bytes: 3,   immediate: true, execute: undefined }, // 0xC4
-    Opcode { mnemonic: "PUSH", bytes: 1,   immediate: true, execute: undefined }, // 0xC5
+    Opcode { mnemonic: "CALL", bytes: 3,   immediate: true, execute: call_nz_a16 }, // 0xC4
+    Opcode { mnemonic: "PUSH", bytes: 1,   immediate: true, execute: push_bc }, // 0xC5
     Opcode { mnemonic: "ADD", bytes: 2,    immediate: true, execute: undefined }, // 0xC6
     Opcode { mnemonic: "RST", bytes: 1,    immediate: true, execute: undefined }, // 0xC7
     Opcode { mnemonic: "RET", bytes: 1,    immediate: true, execute: undefined  }, // 0xC8
@@ -554,19 +554,19 @@ pub fn process_instruction(cpu: &mut Cpu)
         opcode.bytes,
         cycles
     );
-
-
 }
 
+// im pretty sure removing the cpu.set pc+1 here is causing issues when i implment my opcodes
+// then I have to add the pc+1 individually/manually to each opcode. 
 pub fn fetch_opcode(cpu: &mut Cpu) -> &'static Opcode
 {
-    let opcode_byte = cpu.fetch_byte(cpu.regs.PC);
-    cpu.set_register_16( cpu.regs.PC.wrapping_add(1), "PC");
+    let opcode_byte = read_u8_from_pc(cpu);
+    //cpu.set_register_16( cpu.regs.PC.wrapping_add(1), "PC");
 
     if opcode_byte == 0xCB
     {
-        let cb_byte = cpu.fetch_byte(cpu.regs.PC);
-        cpu.set_register_16( cpu.regs.PC.wrapping_add(1), "PC");
+        let cb_byte = read_u8_from_pc(cpu);
+        //cpu.set_register_16( cpu.regs.PC.wrapping_add(1), "PC");
 
         &CB_OPCODES[cb_byte as usize]
     }
@@ -574,34 +574,6 @@ pub fn fetch_opcode(cpu: &mut Cpu) -> &'static Opcode
     {
         &OPCODES[opcode_byte as usize]  
     }
-}
-
-// return the byte at pc and increment pc 
-pub fn next_byte(cpu: &mut Cpu) -> u8
-{
-    let pc = cpu.get_register_16("PC");
-
-    cpu.set_register_16(pc.wrapping_add(1), "PC");
-
-    let b = cpu.fetch_byte(pc);
-
-    b
-}
-
-// next word function
-//I might not use this I might just use read_u16_from pc
-// it makes more sense to me logically speaking.
-pub fn next_word(cpu: &mut Cpu) -> u16
-{
-    let pc = cpu.get_register_16("PC");
-
-    cpu.set_register_16(pc.wrapping_add(1), "PC");
-
-
-    let b1 = next_byte(cpu) as u16;
-    let b2 = next_byte(cpu) as u16;
-
-    (b1 << 8) | b2 
 }
 
 //simplfy life
@@ -730,8 +702,7 @@ pub fn cp_8bit(cpu: &mut Cpu, a:u8, b:u8)
 
 }
 
-
-pub fn pop_u16(cpu: &mut Cpu) -> u16 
+/*pub fn pop_u16(cpu: &mut Cpu) -> u16 
 {
     let sp = cpu.get_register_16("SP");
     let low = cpu.inter.read_byte(sp);
@@ -742,15 +713,23 @@ pub fn pop_u16(cpu: &mut Cpu) -> u16
     ((high as u16) << 8) | (low as u16)
 }
 
+pub fn push_u16(cpu: &mut Cpu) -> u16 
+{
+    let sp = cpu.get_register_16("SP");
+    let low = cpu.inter.read_byte(sp);
+    let sp = sp.wrapping_add(1);
+    let high  = cpu.inter.read_byte(sp);
+    cpu.set_register_16(sp.wrapping_add(1), "SP");
+
+    ((high as u16) << 8) | (low as u16)
+}*/
 
 pub fn read_u16_from_pc(cpu: &mut Cpu) -> u16
 {
-    let pc = cpu.get_register_16("PC");
-    let mut low = cpu.inter.read_byte(pc);
-    let mut high = cpu.inter.read_byte(pc.wrapping_add(1));
-    cpu.set_register_16(pc.wrapping_add(2), "PC");
+    let low  = read_u8_from_pc(cpu) as u16;
+    let high = read_u8_from_pc(cpu) as u16;
 
-    ((high as u16) << 8) | (low as u16)
+    ((high as u16) << 8) | low
 }
 
 pub fn read_u8_from_pc(cpu: &mut Cpu) -> u8
@@ -763,7 +742,6 @@ pub fn read_u8_from_pc(cpu: &mut Cpu) -> u8
 
     val
 }
-
 
 // 0x00
 pub fn nop(cpu: &mut Cpu) -> u8
@@ -2905,21 +2883,105 @@ pub fn ret_nz(cpu: &mut Cpu) -> u8
 //0xC1
 pub fn pop_bc(cpu: &mut Cpu) -> u8
 {
+    let val = cpu.pop_word();
+    cpu.set_8_to_16_conversion("BC", val);
 
+    12
+}
+
+// 0xC2
+pub fn jp_nz_a16(cpu: &mut Cpu) -> u8 
+{
+    let pc = cpu.get_register_16("PC");
+    cpu.set_register_16(pc.wrapping_add(1), "PC");
+
+    let addr = read_u16_from_pc(cpu);
+
+    if !cpu.get_flags('Z') 
+    {
+        cpu.set_register_16(addr, "PC");
+        16
+    } 
+    else 
+    {
+        12
+    }
 }
 
 
 // 0xC3
 pub fn jp_a16(cpu: &mut Cpu) -> u8
 {
-    let val = next_word(cpu);
 
-    cpu.set_register_16(val, "pc");
+    let pc = cpu.get_register_16("PC");
+    cpu.set_register_16(pc.wrapping_add(1), "PC");
 
-    cpu.delay(1);
+    let val = read_u16_from_pc(cpu);
+
+    cpu.set_register_16(val, "PC");
 
     16
+}
 
+//0xC4
+pub fn call_nz_a16(cpu: &mut Cpu) -> u8
+{
+    
+    let pc = cpu.get_register_16("PC");
+    cpu.set_register_16(pc.wrapping_add(1), "PC");
+
+
+    let addr = read_u16_from_pc(cpu);
+
+    if !cpu.get_flags('Z')
+    {
+        let pc = cpu.get_register_16("PC");
+
+        cpu.push_word(pc);
+        cpu.set_register_16(addr, "PC");
+
+        24
+    }
+    else 
+    {
+        12
+    }
+
+}
+
+//0xC5
+pub fn push_bc(cpu: &mut Cpu) -> u8
+{
+
+    let pc = cpu.get_register_16("PC");
+    cpu.set_register_16(pc.wrapping_add(1), "PC");
+
+    let bc = cpu.get_8_to_16_conversion("BC");
+    cpu.push_word(bc);
+
+    12
+}
+
+//0xC6
+pub fn add_a_d8(cpu: &mut Cpu) -> u8
+{
+    let val = read_u8_from_pc(cpu);
+    let a = cpu.get_register_8('A');
+
+    let result = add_8bit(cpu, a, val);
+    cpu.set_register_8(result, 'A');
+
+    println!("A: {:02X}, d8: {:02X}, result: {:02X}, Z: {}", a, val, result, cpu.get_flags('Z'));
+
+    println!(
+    "Z: {}, N: {}, H: {}, C: {}",
+    cpu.get_flags('Z'),
+    cpu.get_flags('N'),
+    cpu.get_flags('H'),
+    cpu.get_flags('C')
+);
+
+    8
 }
 
 //0xF3
@@ -6791,7 +6853,7 @@ mod tests
 
     }
 
-
+    //0xC0
     #[test]
     fn test_ret_nz_taken() 
     {
@@ -6812,6 +6874,7 @@ mod tests
         assert_eq!(cycles, 20);
     }
 
+    //0xC0
     #[test]
     fn test_ret_nz_not_taken() 
     {
@@ -6828,9 +6891,189 @@ mod tests
         assert_eq!(cycles, 8);
     }
 
+    //0xC1
+    #[test]
+    fn test_pop_bc() 
+    {
+        let mut memory = vec![0; 0x10000];
+        memory[0xDFFE] = 0x34; 
+        memory[0xDFFF] = 0x12; 
+
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_register_16(0xDFFE, "SP");
+
+        let cycles = pop_bc(&mut cpu);
+
+        assert_eq!(cpu.get_register_16("BC"), 0x1234);
+        assert_eq!(cpu.get_register_16("SP"), 0xE000);
+        assert_eq!(cycles, 12);
+    }
+
+    //0xC2 
+    #[test]
+    fn test_jp_nz_a16_taken() {
+        let mut memory = vec![0; 0x10000];
+        memory[0x0100] = 0xC2;
+        memory[0x0101] = 0x34; 
+        memory[0x0102] = 0x12; 
+
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_register_16(0x0100, "PC");
+        cpu.set_flags('Z', false); 
+
+        let cycles = jp_nz_a16(&mut cpu);
+
+        assert_eq!(cpu.get_register_16("PC"), 0x1234);
+        assert_eq!(cycles, 16); // correct GB cycle count when jump is taken
+    }
+
+    //0xC2
+    #[test]
+    fn test_jp_nz_a16_not_taken() {
+        let mut memory = vec![0; 0x10000];
+        memory[0x0100] = 0xC2;
+        memory[0x0101] = 0x34;
+        memory[0x0102] = 0x12;
+
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_register_16(0x0100, "PC");
+        cpu.set_flags('Z', true); // Z → do NOT 
 
 
+        let cycles = jp_nz_a16(&mut cpu);
 
+        // PC moves past operand bytes: PC = 0x0103
+        assert_eq!(cpu.get_register_16("PC"), 0x0103);
+        assert_eq!(cycles, 12); // correct GB cycle count when jump is NOT taken
+    }
+
+    //0xC3
+    #[test]
+    fn test_jp_a16()
+    {
+        let mut memory = vec![0; 0x10000];
+        memory[0x0100] = 0xC3;
+        memory[0x0101] = 0x34;
+        memory[0x0102] = 0x12;
+
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_register_16(0x0100, "PC"); 
+
+        let cycles = jp_a16(&mut cpu);
+
+        assert_eq!(cpu.get_register_16("PC"), 0x1234);
+        assert_eq!(cycles, 16); 
+    }
+
+    //0xC4
+    #[test]
+    fn test_call_nz_a16_not_taken() 
+    {
+        let mut memory = vec![0; 0x10000];
+        memory[0x0100] = 0xC4; 
+        memory[0x0101] = 0x34;
+        memory[0x0102] = 0x12;
+
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_register_16(0x0100, "PC");
+        cpu.set_register_16(0xFFFE, "SP");
+        cpu.set_flags('Z', true); 
+
+        let cycles = call_nz_a16(&mut cpu);
+
+        assert_eq!(cpu.get_register_16("PC"), 0x0103);
+        assert_eq!(cpu.get_register_16("SP"), 0xFFFE);
+        assert_eq!(cycles, 12);
+    }
+
+    //0xC4
+    #[test]
+    fn test_call_nz_a16_taken() 
+    {
+        let mut memory = vec![0; 0x10000];
+        memory[0x0100] = 0xC4; // CALL NZ,a16
+        memory[0x0101] = 0x34;
+        memory[0x0102] = 0x12;
+
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_register_16(0x0100, "PC");
+        cpu.set_register_16(0xFFFE, "SP");
+        cpu.set_flags('Z', false); 
+
+        let cycles = call_nz_a16(&mut cpu);
+
+        assert_eq!(cpu.get_register_16("SP"), 0xFFFC);
+
+        let low  = cpu.inter.read_byte(0xFFFC);
+        let high = cpu.inter.read_byte(0xFFFD);
+        let ret  = ((high as u16) << 8) | low as u16;
+
+        assert_eq!(ret, 0x0103); 
+
+        assert_eq!(cpu.get_register_16("PC"), 0x1234);
+
+        assert_eq!(cycles, 24);
+    }
+
+    //0xC5
+    #[test]
+    fn test_push_bc() 
+    {
+        let interconnect = Interconnect::new(vec![0; 0x10000]);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_register_16(0x1234, "BC"); 
+        cpu.set_register_16(0xFFFE, "SP");  
+
+        let cycles = push_bc(&mut cpu);
+
+        assert_eq!(cpu.get_register_16("SP"), 0xFFFC);
+
+        let low  = cpu.inter.read_byte(0xFFFC);
+        let high = cpu.inter.read_byte(0xFFFD);
+        let pushed = ((high as u16) << 8) | low as u16;
+        assert_eq!(pushed, 0x1234);
+
+        assert_eq!(cycles, 12)
+    }
+
+    //0xC6
+    #[test]
+    fn test_add_a_d8() 
+    {
+        let mut memory = vec![0; 0x10000];
+        memory[0x0100] = 0x3C; 
+
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_register_16(0x0100, "PC");
+        cpu.set_register_8(0x20, 'A'); 
+        cpu.set_flags('C', false);
+
+        let cycles = add_a_d8(&mut cpu);
+
+        assert_eq!(cpu.get_register_8('A'), 0x5C); 
+        assert_eq!(cpu.get_flags('Z'), false);
+        assert_eq!(cpu.get_flags('N'), false);
+        assert_eq!(cpu.get_flags('H'), false);  
+        assert_eq!(cpu.get_flags('C'), false);
+
+
+        assert_eq!(cycles, 8); 
+    }
 
 
 }

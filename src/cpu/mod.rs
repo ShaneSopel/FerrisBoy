@@ -146,7 +146,7 @@ impl Cpu
 
         let b = self.fetch_byte(sp);
 
-        self.set_register_16(sp+1, "SP");
+        self.set_register_16(sp.wrapping_add(1), "SP");
 
         b
 
@@ -154,9 +154,7 @@ impl Cpu
 
     fn push_byte(&mut self, val: u8)
     {
-        let mut sp = self.get_register_16("SP");
-
-        sp -= 1;
+        let mut sp = self.get_register_16("SP").wrapping_sub(1);
 
         self.set_register_16(sp, "SP");
 
@@ -229,13 +227,13 @@ impl Cpu
     }
 
     // set 16 bit dual registers 
-    fn set_8_to_16_conversion(&mut self, reg: &str, val: u16)
+    fn set_8_to_16_conversion(&mut self,  val: u16, reg: &str)
     {
         match reg 
         {
             "AF" => {
                 self.regs.A = (val >> 8) as u8;
-                self.regs.F = (val & 0xF0) as u8; // lower 4 bits always zero
+                self.regs.F = (val & 0xF0) as u8;
             }
             "BC" => {
                 self.regs.B = (val >> 8) as u8;
@@ -278,10 +276,10 @@ impl Cpu
         {
             "PC" => self.regs.PC = val,
             "SP" => self.regs.SP = val,
-            "AF" => self.set_8_to_16_conversion("AF", val),
-            "BC" => self.set_8_to_16_conversion("BC", val),
-            "DE" => self.set_8_to_16_conversion("DE", val),
-            "HL" => self.set_8_to_16_conversion("HL", val),
+            "AF" => self.set_8_to_16_conversion(val, "AF"),
+            "BC" => self.set_8_to_16_conversion(val,"BC"),
+            "DE" => self.set_8_to_16_conversion(val,"DE"),
+            "HL" => self.set_8_to_16_conversion(val,"HL"),
 
             _ => println!("invalid value"),
         }
@@ -428,9 +426,9 @@ fn test_register_pair_consistency()
     let inter = Interconnect::new(memory);
     let mut cpu = Cpu::new(inter);
 
-    cpu.set_8_to_16_conversion("HL", 0x1234);
+    cpu.set_8_to_16_conversion(0x1234,"HL" );
     assert_eq!(cpu.get_8_to_16_conversion("HL"), 0x1234);
 
-    cpu.set_8_to_16_conversion("DE", 0xABCD);
+    cpu.set_8_to_16_conversion( 0xABCD, "DE",);
     assert_eq!(cpu.get_8_to_16_conversion("DE"), 0xABCD);
 }

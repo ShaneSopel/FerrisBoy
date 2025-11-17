@@ -625,7 +625,6 @@ pub fn sub_8bit(cpu: &mut Cpu, a: u8, b: u8) -> u8
 {
     let (result, borrow) = a.overflowing_sub(b);
 
-    // Half-carry (borrow from bit 4)
     let half_borrow = (a & 0x0F) < (b & 0x0F);
 
     cpu.set_flags('Z', result == 0);
@@ -702,27 +701,12 @@ pub fn cp_8bit(cpu: &mut Cpu, a:u8, b:u8)
 
 }
 
-/*pub fn pop_u16(cpu: &mut Cpu) -> u16 
+pub fn rst(cpu: &mut Cpu, addr: u16) 
 {
-    let sp = cpu.get_register_16("SP");
-    let low = cpu.inter.read_byte(sp);
-    let sp = sp.wrapping_add(1);
-    let high  = cpu.inter.read_byte(sp);
-    cpu.set_register_16(sp.wrapping_add(1), "SP");
-
-    ((high as u16) << 8) | (low as u16)
+    let pc = cpu.get_register_16("PC");
+    cpu.push_word(pc);
+    cpu.set_register_16(addr, "PC");
 }
-
-pub fn push_u16(cpu: &mut Cpu) -> u16 
-{
-    let sp = cpu.get_register_16("SP");
-    let low = cpu.inter.read_byte(sp);
-    let sp = sp.wrapping_add(1);
-    let high  = cpu.inter.read_byte(sp);
-    cpu.set_register_16(sp.wrapping_add(1), "SP");
-
-    ((high as u16) << 8) | (low as u16)
-}*/
 
 pub fn read_u16_from_pc(cpu: &mut Cpu) -> u16
 {
@@ -1427,12 +1411,10 @@ pub fn ld_l_d8(cpu: &mut Cpu) -> u8
 //0x2F
 pub fn cpl(cpu: &mut Cpu) -> u8
 {
-        // Complement the A register
         let a = cpu.get_register_8('A');
         let result = !a;
         cpu.set_register_8(result, 'A');
     
-        // Set flags: N and H = 1, Z and C unaffected
         cpu.set_flags('N', true);
         cpu.set_flags('H', true);
     
@@ -2884,7 +2866,7 @@ pub fn ret_nz(cpu: &mut Cpu) -> u8
 pub fn pop_bc(cpu: &mut Cpu) -> u8
 {
     let val = cpu.pop_word();
-    cpu.set_8_to_16_conversion("BC", val);
+    cpu.set_8_to_16_conversion(val, "BC");
 
     12
 }
@@ -2971,17 +2953,54 @@ pub fn add_a_d8(cpu: &mut Cpu) -> u8
     let result = add_8bit(cpu, a, val);
     cpu.set_register_8(result, 'A');
 
-    println!("A: {:02X}, d8: {:02X}, result: {:02X}, Z: {}", a, val, result, cpu.get_flags('Z'));
-
-    println!(
-    "Z: {}, N: {}, H: {}, C: {}",
-    cpu.get_flags('Z'),
-    cpu.get_flags('N'),
-    cpu.get_flags('H'),
-    cpu.get_flags('C')
-);
-
     8
+}
+
+//0xC7
+pub fn rst_00h(cpu: &mut Cpu) -> u8
+{
+    rst(cpu, 0x0000);
+    16
+}
+
+//0xC8
+pub fn ret_z(cpu: &mut Cpu) -> u8
+{
+    //let pc = cpu.get_register_16("PC");
+    //cpu.set_register_16(pc.wrapping_add(1), "PC");
+
+    if cpu.get_flags('Z')
+    {
+        let addr = cpu.pop_word();
+        cpu.set_register_16(addr, "PC");
+        20
+    }
+    else 
+    {
+        8
+    }
+}
+
+//0xC9
+pub fn ret(cpu: &mut Cpu) -> u8
+{
+        let addr = cpu.pop_word();
+        cpu.set_register_16(addr, "PC");
+        16
+}
+
+//0xCA
+pub fn jp_z_a16(cpu: &mut Cpu, addr: u16) -> u8 
+{
+    if cpu.get_flags('Z') 
+    {
+        cpu.set_register_16(addr, "PC");
+        16
+    } 
+    else 
+    {
+        12
+    }
 }
 
 //0xF3
@@ -7074,6 +7093,108 @@ mod tests
 
         assert_eq!(cycles, 8); 
     }
+
+    //0xC7
+    #[test]
+    fn test_rst_00h()
+    {
+        let mut memory = vec![0; 0x10000];
+        memory[0x0100] = 0xC7; 
+
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_register_16(0x0100, "PC");
+        cpu.set_register_16(0xFFFE, "SP");
+
+        let cycles = rst_00h(&mut cpu);
+
+        assert_eq!(cycles, 16);
+        assert_eq!(cpu.get_register_16("PC"), 0x0000)
+    }
+
+    //0xC8
+    #[test]
+    fn test_ret_z_taken() {
+        let mut memory = vec![0; 0x10000];
+
+        memory[0xFFFC] = 0x34; 
+        memory[0xFFFD] = 0x12;  
+
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_flags('Z', true);
+
+        cpu.set_register_16(0xFFFC, "SP");
+
+        cpu.set_register_16(0x0100, "PC");
+
+        let cycles = ret_z(&mut cpu);
+
+        assert_eq!(cycles, 20);
+        assert_eq!(cpu.get_register_16("PC"), 0x1234);
+        assert_eq!(cpu.get_register_16("SP"), 0xFFFE); 
+    }
+
+    //0xC9
+    #[test]
+    fn test_ret()
+    {
+        let mut memory = vec![0; 0x10000];
+
+        memory[0xFFFC] = 0x34; 
+        memory[0xFFFD] = 0x12;  
+
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_flags('Z', true);
+
+        cpu.set_register_16(0xFFFC, "SP");
+
+        cpu.set_register_16(0x0100, "PC");
+
+        let cycles = ret_z(&mut cpu);
+
+        assert_eq!(cycles, 20);
+        assert_eq!(cpu.get_register_16("PC"), 0x1234);
+        assert_eq!(cpu.get_register_16("SP"), 0xFFFE); 
+    }
+
+    //0xCA
+    #[test]
+    fn test_jp_z_a16_taken() 
+    {
+        let mut memory = vec![0; 0x10000];
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_flags('Z', true);
+        cpu.set_register_16(0x0100, "PC");
+
+        let cycles = jp_z_a16(&mut cpu, 0x1234);
+
+        assert_eq!(cycles, 16);
+        assert_eq!(cpu.get_register_16("PC"), 0x1234);
+    }
+
+    #[test]
+    fn test_jp_z_not_taken() 
+    {
+        let mut memory = vec![0; 0x10000];
+        let interconnect = Interconnect::new(memory);
+        let mut cpu = Cpu::new(interconnect);
+
+        cpu.set_flags('Z', false);
+        cpu.set_register_16(0x0100, "PC");
+
+        let cycles = jp_z_a16(&mut cpu, 0x1234);
+
+        assert_eq!(cycles, 12);
+        assert_eq!(cpu.get_register_16("PC"), 0x0100); 
+    }
+        
 
 
 }

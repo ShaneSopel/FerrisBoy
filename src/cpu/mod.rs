@@ -1,14 +1,22 @@
 use std::collections::btree_map::Values;
 
-use crate::mmu::Interconnect;
-use crate::registers::Registers;
-mod microops;
+pub mod cpu;
+pub mod alu;
+pub mod registers;
+pub mod microops;
 
-pub struct Cpu//<'a>
+use crate::interconnect::Interconnect;
+use crate::cpu::registers::{Registers, Reg8, Reg16};
+use crate::cpu::microops::MicroOp;
+use crate::cpu::alu::Alu;
+
+pub struct Cpu
 {
     regs: Registers,
 
     flags: Flags,
+
+    alu: Alu,
 
     interrupt: bool,
 
@@ -16,9 +24,9 @@ pub struct Cpu//<'a>
 
     halted: bool,
 
-    inter: Interconnect,//<'a>,
+    inter: Interconnect,
 
-    instruction_cycles: u8,
+    cycles: u8,
 }
 
 struct Flags
@@ -64,12 +72,12 @@ impl Cpu
                 C: false,
             },
 
+            alu: alu,
             inter: inter,
             interrupt: true,
             interrupt_enable_next:  true,
             halted: false,
-            instruction_cycles: 0,
-
+            cycles: 0,
         }
 
 
@@ -96,19 +104,19 @@ impl Cpu
     {
         match op
         {
-            MicroOp::Nop =>
+           /* MicroOp::Nop =>
             {
 
             }
 
-            MicroOp::LdReg8FromReg8   { dst: reg_8, src: reg_8 } =>
+            MicroOp::LdReg8FromReg8 { dst: reg_8, src: reg_8 } =>
             {
                 let v = self.regs.get8(src);
                 self.regs.set8(dst, v);
                 self.cycles += 1;
             }
 
-            MicroOp::LdReg8FromMem    { dst: reg_8, src: reg_16 } =>
+            MicroOp::LdReg8FromMem { dst: reg_8, src: reg_16 } =>
             {
                 let addr = self.regs.get16(src);
                 self.regs.set8(dst, v);
@@ -116,91 +124,119 @@ impl Cpu
 
             }
 
-            LdReg16FromMem   { reg: reg_16, mem: reg_16 } =>
+            MicroOp::LdReg16FromMem { dst: reg_16, mem: reg_16 } =>
             {
-                let addr = self.regs.get16(reg);
+                let addr = self.regs.get16(dst);
                 let lo = self.inter.read(addr) as u16;
                 let hi = self.inter.read(addr.wrapping_add(1)) as u16;
                 let value = (hi << 8) | lo;
                 self.regs.set16(mem, value);
             }
 
-            LdReg8FromReg16  { dst: reg_8,  src: reg_16 } =>
+            MicroOp::LdReg8FromReg16  { dst: reg_8,  src: reg_16 } =>
             {
 
             }
 
-            IncReg8          { reg: reg_8 } =>
+            MicroOp::IncReg8 { reg: reg_8 } =>
             {
                 let v = self.regs.get8(reg);
-                self.regs.set8()
-
-
+                self.regs.set8(v.wrapping_add(1));
             }
 
-            DecReg8          { reg: reg_8 } =>
+            MicroOp::DecReg8 { reg: reg_8 } =>
             {
 
             }
 
-            IncReg16         { reg: reg_16 } =>
+            MicroOp::IncReg16 { reg: reg_16 } =>
             {
 
             }
 
-            DecReg16         { reg: reg_16 } =>
+            MicroOp::DecReg16 { reg: reg_16 } =>
             {
 
             }
 
-            AddReg8          { dst: reg_8, src: reg_8 } =>
+            MicroOp::AddReg8 { dst: reg_8, src: reg_8 } =>
+            {
+                let a = self.regs.get8(dst);
+                let b = self.regs.get8(src);
+
+                let result = self.alu.add_8bit(self, a, b);
+                self.regs.set8(dst, result);
+            }
+
+            MicroOp::AddReg16 { dst: Reg16, src: Reg16 } =>
+            {
+
+            }*/
+
+            MicroOp::AddCarry8 { dst, src } =>
+            {
+                let a = self.regs.get8(dst);
+                let b = self.regs.get8(src);
+
+                let result = self.alu.adc_8bit(self, a, b);
+
+                self.regs.set8(dst, result);
+            }
+
+            /*MicroOp::AddCarry16 { dst: Reg8,  src: Reg16 } =>
             {
 
             }
 
-            AddReg16         { dst: Reg16, src: Reg16 } =>
+            MicroOp::SubReg8 { dst: Reg8,  src: Reg8 } =>
+            {
+                let a = self.regs.get8(dst);
+                let b = self.regs.get8(src);
+
+                let result = self.alu.sub_8bit(self, a, b);
+
+                self.regs.set8(dst, result);
+            }
+
+            MicroOp::SubReg16 { dst: Reg8,  src: Reg16 } =>
             {
 
             }
 
-            AddCarry8        { dst: Reg16, src: Reg8 } =>
+            MicroOp::SubCarry8 { dst: Reg8,  src: Reg8 } =>
             {
+                let a = self.regs.get8(dst);
+                let b = self.regs.get8(src);
+
+                let result = self.alu.sbc_8bit(self, a, b);
+
+                self.regs.set8(dst, result);
+            }
+
+            MicroOp::SubCarry16 { dst: Reg8,  src: Reg16 } =>
+            {
+                let a = self.regs.get8(dst);
+                let b = self.regs.get8(src);
+
+                let result = self.alu.sbc_8bit(self, a, b);
+
+                self.regs.set8(dst, result);
+            }
+
+            MicroOp::PushReg16 { reg: reg_16 } =>
+            {
+                let a = self.regs.get16(dst);
+
+                let result = self.alu.push_word();
+
+                self.regs.set8(dst, result);
 
             }
 
-            AddCarry16       { dst: Reg8,  src: Reg16 } =>
+            MicroOp::PopReg16 { reg: reg_16} =>
             {
 
-            }
-
-            SubReg8          { dst: Reg8,  src: Reg8 } =>
-            {
-
-            }
-
-            SubReg16         { dst: Reg8,  src: Reg16 } =>
-            {
-
-            }
-
-            SubCarry8        { dst: Reg8,  src: Reg8 } =>
-            {
-
-            }
-
-            SubCarry16       { dst: Reg8,  src: Reg16 } =>
-            {
-
-            }
-
-            PushReg16        { reg: reg_16 } =>
-            {
-
-            }
-
-            PopReg16         { reg: reg_16}
-                    
-
+            }*/
         }
     }
 }

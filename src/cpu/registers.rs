@@ -1,4 +1,4 @@
-struct Registers
+pub struct Registers
 {
     PC: u16,
 
@@ -26,6 +26,40 @@ struct Registers
 
 }
 
+struct Flags
+{
+    Z: bool, // Zero
+
+    H: bool, // Half Carry Flag
+
+    N: bool, // Subtract Flag
+
+    C: bool, // Carry Flag
+}
+
+impl Flags
+{
+    pub fn to_u8(&self) -> u8 
+    {
+        ((self.z as u8) << 7)
+        | ((self.n as u8) << 6)
+        | ((self.h as u8) << 5)
+        | ((self.c as u8) << 4)
+    }
+
+    pub fn from_u8(f: u8) -> Self 
+    {
+        Flags 
+        {
+            z: f & 0x80 != 0,
+            n: f & 0x40 != 0,
+            h: f & 0x20 != 0,
+            c: f & 0x10 != 0,
+        }
+    }
+}
+
+#[derive(Copy, Clone)]
 pub enum Reg8
 {
     A,
@@ -38,6 +72,7 @@ pub enum Reg8
     L,
 }
 
+#[derive(Copy, Clone)]
 pub enum Reg16
 {
     AF,

@@ -1,4 +1,7 @@
-enum MicroOp
+use crate::cpu::Reg8;
+use crate::cpu::Reg16;
+
+pub enum MicroOp
 {
     Nop, 
     LdReg8FromReg8   { dst: Reg8, src: Reg8 },

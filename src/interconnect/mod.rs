@@ -14,7 +14,7 @@
 use crate::interconnect;
 
 
-pub struct Interconnect//<'a>
+pub struct Interconnect
 {
 
 
@@ -29,8 +29,10 @@ pub struct Interconnect//<'a>
 
 impl Interconnect {
     /// Initialize with a test Vec<u8> memory
-    pub fn new(memory: Vec<u8>) -> Self {
-        let mut inter = Self {
+    pub fn new(memory: Vec<u8>) -> Self 
+    {
+        let mut inter = Self 
+        {
             rom: [0; 0x8000],
             vram: [0; 0x2000],
             wram: [0; 0x2000],

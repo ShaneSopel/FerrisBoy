@@ -4,8 +4,6 @@ mod cpu;
 mod interconnect;
 mod cart;
 
-use std::env;
-
 use std::io::Result;
 
 use crate::cart::Cart;

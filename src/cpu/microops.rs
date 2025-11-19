@@ -1,10 +1,11 @@
 enum MicroOp
 {
+    Nop, 
     LdReg8FromReg8   { dst: Reg8, src: Reg8 },
     LdReg8FromMem    { dst: Reg8, src: Reg16 }, 
     LdReg16FromMem   { dst: Reg16, src: Reg16 },
-    LdReg16FromReg8  { dst: Reg16, src: Reg8 },
-    LdReg8FromReg16  { dst: Reg8,  src: Reg16 },
+    LdReg16FromReg8  { dst: Reg16, src_hi: Reg8, src_lo: Reg8 },
+    LdReg8FromReg16  { dst: Reg8,  src: Reg16, byte: ByteSel },
     IncReg8          { reg: Reg8 },
     DecReg8          { reg: Reg8 },
     IncReg16         { reg: Reg16 }, 
@@ -19,5 +20,12 @@ enum MicroOp
     SubCarry16       { dst: Reg8,  src: Reg16 },  
     PushReg16        { reg: Reg16 },
     PopReg16         { reg: Reg16 },
-
+    Fetch8,
+    Fetch16,
+    JumpAbsolute    { addr: Reg16 },
+    JumpRelative    { offset: i8 },
+    CallAbsolute    { addr: Reg16 },
+    Return,
+    Restart         { vector: u16 },
+    Illegal         { opcode: u8 },
 }

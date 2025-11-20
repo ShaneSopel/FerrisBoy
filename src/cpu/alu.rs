@@ -26,6 +26,21 @@ impl Alu
         result
     }
 
+    pub fn add_16bit(&self, cpu: &mut Cpu, a: u16, b: u16) -> u16
+    {
+        let result = a.wrapping_add(b);
+
+        let h = (((a & 0x0FFF) + (b & 0x0FFF)) & 0x1000) != 0;
+        let c = (a as u32 + b as u32) > 0xFFFF;
+    
+        cpu.flags.set_flag('Z', result == 0);
+        cpu.flags.set_flag('N', false);
+        cpu.flags.set_flag('H', h);
+        cpu.flags.set_flag('C', c);
+
+        result
+    }
+
     pub fn adc_8bit(&self, cpu: &mut Cpu, a: u8, b: u8) -> u8 
     {
         let carry_in = if cpu.flags.get_flag('C') { 1 } else { 0 };

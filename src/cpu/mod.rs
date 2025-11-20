@@ -73,6 +73,14 @@ impl Cpu
     {
     }
 
+    fn fetch8(&mut self) -> u8 
+    {
+        let byte = self.interconnect.read8(self.regs.get16(Reg16::PC));
+        self.regs.set16(Reg16::PC, self.regs.get16(Reg16::PC).wrapping_add(1));
+        self.cycles += 1; // 1 machine cycle for fetch
+        byte
+    }
+
     pub fn decode(opcode: u8) -> Vec<MicroOp>
     {
         match opcode
@@ -117,29 +125,33 @@ impl Cpu
 
             MicroOp::LdReg8FromReg16  { dst,  src, byte } =>
             {
-
+                let addr = self.regs.get16(src);
+                let value = self.inter.read(addr);
+                self.regs.set8(dst, value);
             }
 
             MicroOp::IncReg8 { reg } =>
             {
-                let v = self.regs.get8(reg);
-                self.regs.set8(reg, v.wrapping_add(1));
+                let value = self.regs.get8(reg);
+                self.regs.set8(reg, value.wrapping_add(1));
             }
 
             MicroOp::DecReg8 { reg } =>
             {
-                let v = self.regs.get8(reg);
-                self.regs.set8(reg, v.wrapping_sub(1));
+                let value = self.regs.get8(reg);
+                self.regs.set8(reg, value.wrapping_sub(1));
             }
 
             MicroOp::IncReg16 { reg } =>
             {
-
+                let value = self.regs.get16(reg)
+                self.regs.set16(reg, value.wrapping_add(1));
             }
 
             MicroOp::DecReg16 { reg } =>
             {
-
+                let value = self.regs.get16(reg);
+                self.regs.set16(reg, value.wrapping_sub(1));
             }
 
             MicroOp::AddReg8 { dst, src } =>
@@ -153,8 +165,12 @@ impl Cpu
 
             MicroOp::AddReg16 { dst, src } =>
             {
+                let a = self.regs.get16(dst);
+                let a = self.regs.get16(src);
 
+                let result = self.alu.add_16bit(self, a, b);
 
+                self.regs.set16(dst, result);
             }
 
             MicroOp::AddCarry8 { dst, src } =>
@@ -167,11 +183,6 @@ impl Cpu
                 self.regs.set8(dst, result);
             }
 
-            /*MicroOp::AddCarry16 { dst, src } =>
-            {
-
-            }
-
             MicroOp::SubReg8 { dst ,  src } =>
             {
                 let a = self.regs.get8(dst);
@@ -182,10 +193,6 @@ impl Cpu
                 self.regs.set8(dst, result);
             }
 
-            MicroOp::SubReg16 { dst, src } =>
-            {
-
-            }
 
             MicroOp::SubCarry8 { dst, src} =>
             {
@@ -197,30 +204,95 @@ impl Cpu
                 self.regs.set8(dst, result);
             }
 
-            MicroOp::SubCarry16 { dst, src } =>
+            MicroOp::XorReg8 { dst, src } =>
             {
                 let a = self.regs.get8(dst);
                 let b = self.regs.get8(src);
 
-                let result = self.alu.sbc_8bit(self, a, b);
+                let result = self.alu.xor_8bit(self, a, b);
 
                 self.regs.set8(dst, result);
+            }
+
+            MicroOp::CpReg8 { a, src } =>
+            {
+                let a = self.regs.A;
+                let b = self.regs.get8(src);
+
+                let results = self.alu.cp_8bit(self, a, b);
+
+                self.regs.set8(a, results);
+            }
+
+            MicroOp::OrReg8 { dst, src } =>
+            {
+                let a = self.regs.get8(dst);
+                let b = self.regs.get8(src);
+
+                let results = self.alu.or_8bit(self, a, b);
+
+                self.regs.set8(dst, results);
             }
 
             MicroOp::PushReg16 { reg } =>
             {
-                let a = self.regs.get16(dst);
+                let val = cpu.get_register_16(src);
+                let hi = (val >> 8) as u8;
+                let lo = val as u8;
 
-                let result = self.alu.push_word();
+                self.regs.SP = self.regs.SP.wrapping_sub(1);
+                interconnect.write8(self.regs.SP, hi);
 
-                self.regs.set8(dst, result);
-
+                self.regs.SP = self.regs.SP.wrapping_sub(1);
+                interconnect.write8(self.regs.SP, lo);
             }
 
             MicroOp::PopReg16 { reg } =>
             {
+                let lo = interconnect.read8(cpu.SP);
+                self.regs.SP = self.regs.SP.wrapping_add(1);
 
-            }*/
+                let hi = interconnect.read8(cpu.SP);
+                self.regs.SP = self.regs.SP.wrapping_add(1);
+
+                let val = ((hi as u16) << 8) | lo as u16;
+                self.regs.set16(dst, val);
+            }
+
+            MicroOp::JumpAbsolute { addr } =>
+            {
+                self.regs.PC = addr;
+            }
+
+            MicroOp::JumpRelative { offset } =>
+            {
+                let pc = self.regs.PC.wrapping_add(offset as u16);
+                self.regs.PC = pc;
+            }
+
+            MicroOp::JumpRelativeIf { offset, flag, expected } => 
+            {
+                if self.flags.get_flag(flag) == expected 
+                {
+                    let new_pc = self.regs.PC.wrapping_add(offset as u16);
+                    self.regs.PC = new_pc;
+                }
+            }
+
+            MicroOp::Return =>
+            {
+
+            }
+
+            MicroOp::Restart { vector } =>
+            {
+
+            }
+
+            MicroOp::Illegal { opcode } =>
+            {
+
+            }
         }
     }
 }

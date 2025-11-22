@@ -86,6 +86,7 @@ impl Cpu
         match opcode
         {
             0x00 => vec![MicroOp::Nop],
+            0x01 =>
             _ => panic!("Unimplemented opcode: {:02X}", opcode),
         }
     }
@@ -99,6 +100,17 @@ impl Cpu
 
             }
 
+            MicroOp::Halt =>
+            {
+
+            }
+
+            MicroOp::Stop =>
+            {
+
+            }
+            
+            //Load instructions
             MicroOp::LdReg8FromReg8 { dst, src } =>
             {
                 let v = self.regs.get8(src);
@@ -114,6 +126,13 @@ impl Cpu
 
             }
 
+            MicroOp::LdMemFromReg8 { addr , src }
+            {
+                let value = self.regs.get8(src);
+                self.inter.write(addr, value);
+                self.cycles += 1;
+            }
+
             MicroOp::LdReg16FromMem { dst, src } =>
             {
                 let addr = self.regs.get16(src);
@@ -126,10 +145,11 @@ impl Cpu
             MicroOp::LdReg8FromReg16  { dst,  src, byte } =>
             {
                 let addr = self.regs.get16(src);
-                let value = self.inter.read(addr);
+                let value = self.inter.read_byte(addr);
                 self.regs.set8(dst, value);
             }
 
+            //Logical 
             MicroOp::IncReg8 { reg } =>
             {
                 let value = self.regs.get8(reg);
@@ -160,6 +180,24 @@ impl Cpu
                 let b = self.regs.get8(src);
 
                 let result = self.alu.add_8bit(self, a, b);
+                self.regs.set8(dst, result);
+            }
+
+            MicroOp::AddReg8Mem { dst , src } =>
+            {
+                let a = self.regs.get8(dst);
+                let b = self.regs.get16(src);
+                let value = self.inter.read_byte(b);
+
+                let result = self.alu.add_8bit(self, a, b);
+                self.regs.set8(dst, result);
+            }
+
+            AddReg8Imm { dst , src } => 
+            {
+                let a = self.regs.get8(dst);
+
+                let result = self.alu.add_8bit(self, a, src);
                 self.regs.set8(dst, result);
             }
 
@@ -220,8 +258,15 @@ impl Cpu
                 let b = self.regs.get8(src);
 
                 let results = self.alu.cp_8bit(self, a, b);
+            }
 
-                self.regs.set8(a, results);
+            MicroOp::CpReg8Mem { a, src } =>
+            {
+                let a = self.regs.A;
+                let b = self.regs.get16(src);
+                let value = self.inter.read_byte(b);
+
+                let results = self.alu.cp_8bit(self, a, value);
             }
 
             MicroOp::OrReg8 { dst, src } =>
@@ -232,6 +277,35 @@ impl Cpu
                 let results = self.alu.or_8bit(self, a, b);
 
                 self.regs.set8(dst, results);
+            }
+
+            OrReg8Mem  { dst src } =>
+            {
+                let a = self.regs.get8(dst);
+                let b = self.regs.get16(src);
+                let value = self.inter.read_byte(b);
+
+                let results = self.alu.or_8bit(self, a, value);
+
+                self.regs.set8(dst, results);
+            }
+
+            OrReg8Imm { dst, src } =>
+            {
+                let a = self.regs.get8(dst);
+
+                let results = self.alu.or_8bit(self, a, src);
+                self.regs.set8(dst, results);
+            }
+
+            AndReg8 { dst, src } =>
+            {
+                let a = self.regs.get8(dst);
+                let b = self.regs.get8(src);
+
+                let results = self.alu.and_8bit(self, a, b);
+                self.regs.set8(dst, results);
+
             }
 
             MicroOp::PushReg16 { reg } =>
@@ -264,6 +338,19 @@ impl Cpu
                 self.regs.PC = addr;
             }
 
+            JumpAbsoluteIf   { addr, flag, expected} =>
+            {
+                let value = self.Flag.get_flag(flag);
+                let taken = value == expected;
+
+                if taken
+                {
+                    self.regs.set16(Reg16::PC, addr);
+                }
+
+                taken
+            }
+
             MicroOp::JumpRelative { offset } =>
             {
                 let pc = self.regs.PC.wrapping_add(offset as u16);
@@ -289,9 +376,50 @@ impl Cpu
 
             }
 
-            MicroOp::Illegal { opcode } =>
+            Di =>
+            {
+                self.interrupt = false;
+            }
+
+            Ei =>
+            {
+                self.interrupt = true;
+            }
+
+            Cpl =>
+            {
+                self.regs.A = !self.regs.A;
+
+                self.Flags.set_flag(Flags::N, true);
+                self.Flags.set_flag(Flags::H, true);
+            }
+
+            Ccf =>
+            {
+                let carry = self.Flags.get_flag(Flags::C);
+
+                self.Flags.set_flag(Flags::C, !carry);
+
+                self.Flags.set_flag(Flags::N, false);
+                self.Flags.set_flag(Flags::H, false);
+            }
+
+            Scf =>
+            {
+                self.Flags.set_flag(Flags::C, true);
+                
+                self.Flags.set_flag(Flags::N, false);
+                self.Flags.set_flag(Flags::H, false);
+            }
+
+            Daa =>
             {
 
+            }
+
+            MicroOp::Illegal { opcode } =>
+            {
+                printl!("illegal opcode");
             }
         }
     }

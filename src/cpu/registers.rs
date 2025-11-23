@@ -1,40 +1,40 @@
 pub struct Registers
 {
-    PC: u16,
+    pub PC: u16,
 
-    SP: u16,
+    pub SP: u16,
 
-    A: u8,
+    pub A: u8,
 
-    F: Flags,
+    pub F: Flags,
 
-    B: u8,
+    pub B: u8,
     
-    C: u8,
+    pub C: u8,
 
-    D: u8,
+    pub D: u8,
     
-    E: u8,
+    pub E: u8,
 
-    H: u8,
+    pub H: u8,
     
-    L: u8,
+    pub L: u8,
 
-    IE: u16,
+    pub IE: u16,
 
-    IR: u16
+    pub IR: u16
 
 }
 
 pub struct Flags
 {
-    Z: bool, // Zero
+    pub Z: bool, // Zero
 
-    H: bool, // Half Carry Flag
+    pub H: bool, // Half Carry Flag
 
-    N: bool, // Subtract Flag
+    pub N: bool, // Subtract Flag
 
-    C: bool, // Carry Flag
+    pub C: bool, // Carry Flag
 }
 
 impl Flags
@@ -176,7 +176,7 @@ impl Registers
     }
 
 
-    fn get16(&self, reg: Reg16) -> u16
+    pub fn get16(&self, reg: Reg16) -> u16
     {
         match reg 
         {

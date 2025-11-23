@@ -74,7 +74,7 @@ impl Alu
 
     pub fn sbc_8bit(&self, cpu: &mut Cpu, a: u8, b: u8) -> u8 
     {
-        let carry_in = if cpu.get_flags('C') { 1 } else { 0 };
+        let carry_in = if cpu.flags.get_flag('C') { 1 } else { 0 };
 
         // Subtract b and carry from a
         let (intermediate, borrow1) = a.overflowing_sub(b);

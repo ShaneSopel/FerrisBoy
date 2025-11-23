@@ -75,7 +75,7 @@ impl Cpu
 
     fn fetch8(&mut self) -> u8 
     {
-        let byte = self.interconnect.read8(self.regs.get16(Reg16::PC));
+        let byte = self.inter.read_byte(self.regs.get16(Reg16::PC));
         self.regs.set16(Reg16::PC, self.regs.get16(Reg16::PC).wrapping_add(1));
         self.cycles += 1; // 1 machine cycle for fetch
         byte
@@ -86,7 +86,7 @@ impl Cpu
         match opcode
         {
             0x00 => vec![MicroOp::Nop],
-            0x01 =>
+            
             _ => panic!("Unimplemented opcode: {:02X}", opcode),
         }
     }
@@ -120,24 +120,25 @@ impl Cpu
 
             MicroOp::LdReg8FromMem { dst, src } =>
             {
-                let addr = self.regs.get16(src);
-                self.regs.set8(dst, v);
+                  let addr = self.regs.get16(src);
+                let value = self.inter.read_byte(addr);
+                self.regs.set8(dst, value);
                 self.cycles += 1;
 
             }
 
-            MicroOp::LdMemFromReg8 { addr , src }
+            MicroOp::LdMemFromReg8 { addr , src } =>
             {
                 let value = self.regs.get8(src);
-                self.inter.write(addr, value);
+                self.inter.write_byte(addr, value);
                 self.cycles += 1;
             }
 
             MicroOp::LdReg16FromMem { dst, src } =>
             {
                 let addr = self.regs.get16(src);
-                let lo = self.inter.read(addr) as u16;
-                let hi = self.inter.read(addr.wrapping_add(1)) as u16;
+                let lo = self.inter.read_byte(addr) as u16;
+                let hi = self.inter.read_byte(addr.wrapping_add(1)) as u16;
                 let value = (hi << 8) | lo;
                 self.regs.set16(dst, value);
             }
@@ -164,7 +165,7 @@ impl Cpu
 
             MicroOp::IncReg16 { reg } =>
             {
-                let value = self.regs.get16(reg)
+                let value = self.regs.get16(reg);
                 self.regs.set16(reg, value.wrapping_add(1));
             }
 
@@ -279,7 +280,7 @@ impl Cpu
                 self.regs.set8(dst, results);
             }
 
-            OrReg8Mem  { dst src } =>
+            OrReg8Mem  { dst, src } =>
             {
                 let a = self.regs.get8(dst);
                 let b = self.regs.get16(src);
@@ -310,23 +311,23 @@ impl Cpu
 
             MicroOp::PushReg16 { reg } =>
             {
-                let val = cpu.get_register_16(src);
+                let val = self.regs.get16(reg);
                 let hi = (val >> 8) as u8;
                 let lo = val as u8;
 
                 self.regs.SP = self.regs.SP.wrapping_sub(1);
-                interconnect.write8(self.regs.SP, hi);
+                self.inter.write_byte(self.regs.SP, hi);
 
                 self.regs.SP = self.regs.SP.wrapping_sub(1);
-                interconnect.write8(self.regs.SP, lo);
+                self.inter.write_byte(self.regs.SP, lo);
             }
 
             MicroOp::PopReg16 { reg } =>
             {
-                let lo = interconnect.read8(cpu.SP);
+                let lo = self.inter.read_byte(self.regs.SP);
                 self.regs.SP = self.regs.SP.wrapping_add(1);
 
-                let hi = interconnect.read8(cpu.SP);
+                let hi = self.inter.read_byte(self.regs.SP);
                 self.regs.SP = self.regs.SP.wrapping_add(1);
 
                 let val = ((hi as u16) << 8) | lo as u16;
@@ -340,7 +341,7 @@ impl Cpu
 
             JumpAbsoluteIf   { addr, flag, expected} =>
             {
-                let value = self.Flag.get_flag(flag);
+                let value = self.flags.get_flag(flag);
                 let taken = value == expected;
 
                 if taken
@@ -376,51 +377,86 @@ impl Cpu
 
             }
 
-            Di =>
+            MicroOp::Di =>
             {
                 self.interrupt = false;
             }
 
-            Ei =>
+            MicroOp::Ei =>
             {
                 self.interrupt = true;
             }
 
-            Cpl =>
+            MicroOp::Cpl =>
             {
                 self.regs.A = !self.regs.A;
 
-                self.Flags.set_flag(Flags::N, true);
-                self.Flags.set_flag(Flags::H, true);
+                self.flags.set_flag(Flags::N, true);
+                self.flags.set_flag(Flags::H, true);
             }
 
-            Ccf =>
+            MicroOp::Ccf =>
             {
-                let carry = self.Flags.get_flag(Flags::C);
+                let carry = self.flags.get_flag(Flags::C);
 
-                self.Flags.set_flag(Flags::C, !carry);
+                self.flags.set_flag(Flags::C, !carry);
 
-                self.Flags.set_flag(Flags::N, false);
-                self.Flags.set_flag(Flags::H, false);
+                self.flags.set_flag(Flags::N, false);
+                self.flags.set_flag(Flags::H, false);
             }
 
-            Scf =>
+            MicroOp::Scf =>
             {
-                self.Flags.set_flag(Flags::C, true);
+                self.flags.set_flag(Flags::C, true);
                 
-                self.Flags.set_flag(Flags::N, false);
-                self.Flags.set_flag(Flags::H, false);
+                self.flags.set_flag(Flags::N, false);
+                self.flags.set_flag(Flags::H, false);
             }
 
-            Daa =>
-            {
-                
 
+            MicroOp::Daa => 
+            {
+                let mut a = self.regs.A;
+                let mut correction: u8 = 0;
+                let mut carry = self.flags.get_flag(Flags::C);
+
+                let n = self.flags.get_flag(Flags::N);
+
+                if !n 
+                {
+                    // After ADD
+                    if self.flags.get_flag(Flags::H) || (a & 0x0F) > 9 {
+                        correction |= 0x06;
+                    }
+                    if carry || a > 0x99 {
+                        correction |= 0x60;
+                        carry = true;
+                    }
+                    a = a.wrapping_add(correction);
+                } 
+                else 
+                {
+                    // After SUB
+                    if self.flags.get_flag(Flags::H) {
+                        correction |= 0x06;
+                    }
+                    if carry {
+                        correction |= 0x60;
+                    }
+                    a = a.wrapping_sub(correction);
+                }
+
+                self.regs.A = a;
+
+                // Set flags
+                self.flags.set_flag(Flags::Z, a == 0);
+                self.flags.set_flag(Flags::H, false);
+                self.flags.set_flag(Flags::C, carry);
             }
 
             MicroOp::Illegal { opcode } =>
             {
-                printl!("illegal opcode");
+                //print("illegal opcode");
             }
         }
     }

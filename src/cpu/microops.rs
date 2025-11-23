@@ -1,6 +1,7 @@
 use crate::cpu::Reg8;
 use crate::cpu::Reg16;
-use crate::Flags;
+use crate::cpu::registers::Flags;
+
 
 #[derive(Debug, Clone, Copy)]
 pub enum ByteSel 
@@ -16,7 +17,7 @@ pub enum MicroOp
     Stop,
     LdReg8FromReg8   { dst: Reg8, src: Reg8 },
     LdReg8FromMem    { dst: Reg8, src: Reg16 }, 
-    LdMemFromReg8    { addr: Reg16, src: Reg8 }
+    LdMemFromReg8    { addr: Reg16, src: Reg8 },
     LdReg16FromMem   { dst: Reg16, src: Reg16 },
     LdReg8FromReg16  { dst: Reg8,  src: Reg16, byte: ByteSel },
     IncReg8          { reg: Reg8 },
@@ -26,13 +27,13 @@ pub enum MicroOp
     AddReg8          { dst: Reg8, src: Reg8 },
     AddReg8Mem       { dst: Reg8, src: Reg16 },
     AddReg8Imm       { dst: Reg8, src: u8},
-    AddReg16         { dst: Reg16::HL, src: Reg16 },
+    AddReg16         { dst: Reg16, src: Reg16 }, //REG16::HL
     AddCarry8        { dst: Reg8, src: Reg8 },
     SubReg8          { dst: Reg8,  src: Reg8 },
     SubCarry8        { dst: Reg8,  src: Reg8 },
     XorReg8          { dst: Reg8,  src: Reg8 },
     CpReg8           { a: Reg8,    src: Reg8 },
-    CpReg8Mem        { a, Reg8,    src: Reg16},
+    CpReg8Mem        { a: Reg8,    src: Reg16},
     OrReg8           { dst: Reg8,  src: Reg8 },
     OrReg8Mem        { dst: Reg8, src: Reg16 },
     OrReg8Imm        { dst: Reg8, src: u8},
@@ -42,9 +43,9 @@ pub enum MicroOp
     JumpAbsolute     { addr: Reg16 },
     JumpAbsoluteIf   { addr: u16, flag: Flags, expected: bool},
     JumpRelative     { offset: i8 },
-    JumpRelativeIf   {  offset: i8, flag: Flags , expected: bool }
+    JumpRelativeIf   {  offset: i8, flag: Flags , expected: bool },
     CallAbsolute     { addr: u16 },
-    CallAbsoluteIf   { addr: u16, flag: Flag, expected: bool},
+    CallAbsoluteIf   { addr: u16, flag: Flags, expected: bool},
     Return           { },
     ReturnIf         { flag: Flags, expected: bool},
     Restart          { vector: u16 },

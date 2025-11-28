@@ -1,15 +1,14 @@
 extern crate sdl2;
 
+mod cart;
 mod cpu;
 mod interconnect;
-mod cart;
 
 use std::io::Result;
 
 use crate::cart::Cart;
 
-fn main() -> Result<()>
-{
+fn main() -> Result<()> {
     let mut cart = cart::Cart::new();
 
     cart.filename = "/home/shane/rust/FerrisBoy/roms/dmg-acid2.gb".to_string();
@@ -17,8 +16,7 @@ fn main() -> Result<()>
 
     let inter = interconnect::Interconnect::new(cart.rom_data);
 
-    if let Some(header) = &cart.rom_head
-    {
+    if let Some(header) = &cart.rom_head {
         let type2 = Cart::cart_type_name(header.type_val);
         let lic = Cart::license_name(header.lic_code);
         let rom_size = Cart::rom_size_bytes(header.rom_size);
@@ -35,14 +33,11 @@ fn main() -> Result<()>
         println!("Global Checksum: {:04X}", header.global_checksum);
     }
 
-
     let mut cpu = cpu::Cpu::new(inter);
 
-    for _ in 0..10
-    {
+    for _ in 0..10 {
         cpu.step();
     }
 
     Ok(())
-
 }

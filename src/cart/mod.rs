@@ -1,10 +1,8 @@
 use std::fs;
 use std::io::{Error, ErrorKind, Result};
 
-
 #[derive(Debug, Clone)]
-pub struct RomHeader
-{
+pub struct RomHeader {
     //commented out values are values I am not currently implementing
     //pub entry: String,
     //pub logo: String,
@@ -21,32 +19,23 @@ pub struct RomHeader
     pub global_checksum: u16,
 }
 
-pub struct Cart
-{
+pub struct Cart {
     pub filename: String, //[char; 1024],
     pub rom_data: Vec<u8>,
-    pub rom_head: Option<RomHeader> //rc<rom_header>
+    pub rom_head: Option<RomHeader>, //rc<rom_header>
 }
 
-impl Cart
-{
-
-    pub fn new() -> Cart
-    {
-        Cart 
-        {
+impl Cart {
+    pub fn new() -> Cart {
+        Cart {
             filename: "none".to_string(),
             rom_data: Vec::new(),
             rom_head: None,
         }
-
     }
 
-    pub fn rom_size_bytes(code: u8) -> &'static str
-    {
-        match code 
-        {
-           
+    pub fn rom_size_bytes(code: u8) -> &'static str {
+        match code {
             0x00 => "32KB",
             0x01 => "64KB",
             0x02 => "128KB",
@@ -63,10 +52,8 @@ impl Cart
         }
     }
 
-    pub fn cart_type_name(value:u8) -> &'static str
-    {
-        match value
-        {
+    pub fn cart_type_name(value: u8) -> &'static str {
+        match value {
             0x00 => "ROM ONLY",
             0x01 => "MBC1",
             0x02 => "MBC1 + RAM",
@@ -230,21 +217,16 @@ impl Cart
         }
     }
 
-    pub fn cart_load(&mut self) -> Result<()>
-    {
-
-        // requesting memory for rom size. 
+    pub fn cart_load(&mut self) -> Result<()> {
+        // requesting memory for rom size.
         self.rom_data = fs::read(&self.filename).unwrap();
         self.rom_head = Some(Self::parse_header(&self.rom_data)?);
 
         Ok(())
-
     }
 
-    fn parse_header(rom: &[u8]) -> Result<RomHeader>
-    {
-        if rom.len() < 0x150
-        {
+    fn parse_header(rom: &[u8]) -> Result<RomHeader> {
+        if rom.len() < 0x150 {
             return Err(Error::new(ErrorKind::UnexpectedEof, "ROM too small"));
         }
 
@@ -260,7 +242,7 @@ impl Cart
         let lic_code = rom[0x14B];
         let version = rom[0x14C];
         let checksum = rom[0x14D];
-        let global_checksum =u16::from_be_bytes([rom[0x14E], rom[0x14F]]);
+        let global_checksum = u16::from_be_bytes([rom[0x14E], rom[0x14F]]);
 
         // Convert binary data into hex string representations
         //let entry_str = entry.iter().map(|b| format!("{:02X}", b)).collect::<Vec<_>>().join(" ");
@@ -268,11 +250,9 @@ impl Cart
 
         // Title as UTF-8 string
         let title_str = std::str::from_utf8(title)
-        .unwrap_or("")
-        .trim_end_matches('\0')
-        .to_string();
-
-        
+            .unwrap_or("")
+            .trim_end_matches('\0')
+            .to_string();
 
         Ok(RomHeader {
             //entry: entry_str,
@@ -289,7 +269,5 @@ impl Cart
             checksum,
             global_checksum,
         })
-
     }
-
 }

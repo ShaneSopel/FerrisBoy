@@ -1,80 +1,91 @@
-use crate::cpu::{ Cpu};
+use crate::cpu::Cpu;
 
 pub struct Alu;
 
-impl Alu
-{
-    pub fn new() -> Self
-    {
-        let alu = Self
-        {
+pub struct AluResult8 {
+    pub result: u8,
+    pub z: bool,
+    pub n: bool,
+    pub h: bool,
+    pub c: bool,
+}
 
-        };
+pub struct AluResult16 {
+    pub result: u16,
+    pub z: bool,
+    pub n: bool,
+    pub h: bool,
+    pub c: bool,
+}
+
+impl Alu {
+    pub fn new() -> Self {
+        let alu = Self {};
 
         alu
     }
 
-    pub fn add_8bit(&self, cpu: &mut Cpu, a: u8, b: u8) -> u8 
-    {
+    pub fn add_8bit(&self, a: u8, b: u8) -> AluResult8 {
         let (result, carry) = a.overflowing_add(b);
 
-        cpu.flags.set_flag('Z', result == 0);
-        cpu.flags.set_flag('N', false);
-        cpu.flags.set_flag('H', ((a & 0x0F) + (b & 0x0F)) > 0x0F);
-        cpu.flags.set_flag('C', carry);
-
-        result
+        AluResult8 {
+            result,
+            z: result == 0,
+            n: false,
+            h: ((a & 0x0F) + (b & 0x0F)) > 0x0F,
+            c: carry,
+        }
     }
 
-    pub fn add_16bit(&self, cpu: &mut Cpu, a: u16, b: u16) -> u16
-    {
+    pub fn add_16bit(&self, a: u16, b: u16) -> AluResult16 {
         let result = a.wrapping_add(b);
 
-        let h = (((a & 0x0FFF) + (b & 0x0FFF)) & 0x1000) != 0;
-        let c = (a as u32 + b as u32) > 0xFFFF;
-    
-        cpu.flags.set_flag('Z', result == 0);
-        cpu.flags.set_flag('N', false);
-        cpu.flags.set_flag('H', h);
-        cpu.flags.set_flag('C', c);
+        let half_carry = (((a & 0x0FFF) + (b & 0x0FFF)) & 0x1000) != 0;
+        let carry = (a as u32 + b as u32) > 0xFFFF;
 
-        result
+        AluResult16 {
+            result,
+            z: result == 0,
+            n: false,
+            h: half_carry,
+            c: carry,
+        }
     }
 
-    pub fn adc_8bit(&self, cpu: &mut Cpu, a: u8, b: u8) -> u8 
-    {
-        let carry_in = if cpu.flags.get_flag('C') { 1 } else { 0 };
+    pub fn adc_8bit(&self, cpu_flag: bool, a: u8, b: u8) -> AluResult8 {
+        //let carry_in = if cpu.flags.get_flag('C') { 1 } else { 0 };
+        let carry_in = if cpu_flag { 1 } else { 0 };
         let result = a.wrapping_add(b).wrapping_add(carry_in);
 
         let half_carry = ((a & 0x0F) + (b & 0x0F) + carry_in) > 0x0F;
         let carry_out = (a as u16) + (b as u16) + (carry_in as u16) > 0xFF;
 
-        cpu.flags.set_flag('Z', result == 0);
-        cpu.flags.set_flag('N', false);
-        cpu.flags.set_flag('H', half_carry);
-        cpu.flags.set_flag('C', carry_out);
-
-        result
-
+        AluResult8 {
+            result,
+            z: result == 0,
+            n: false,
+            h: half_carry,
+            c: carry_out,
+        }
     }
 
-    pub fn sub_8bit(&self, cpu: &mut Cpu, a: u8, b: u8) -> u8 
-    {
+    pub fn sub_8bit(&self, a: u8, b: u8) -> AluResult8 {
         let (result, borrow) = a.overflowing_sub(b);
 
         let half_borrow = (a & 0x0F) < (b & 0x0F);
 
-        cpu.flags.set_flag('Z', result == 0);
-        cpu.flags.set_flag('N', false);
-        cpu.flags.set_flag('H', half_borrow);
-        cpu.flags.set_flag('C', borrow);
-
-        result
+        AluResult8 {
+            result,
+            z: result == 0,
+            n: false,
+            h: half_borrow,
+            c: borrow,
+        }
     }
 
-    pub fn sbc_8bit(&self, cpu: &mut Cpu, a: u8, b: u8) -> u8 
-    {
-        let carry_in = if cpu.flags.get_flag('C') { 1 } else { 0 };
+    pub fn sbc_8bit(&self, cpu_flag: bool, a: u8, b: u8) -> AluResult8 {
+        //let carry_in = if cpu.flags.get_flag('C') { 1 } else { 0 };
+        let carry_in = if cpu_flag { 1 } else { 0 };
 
         // Subtract b and carry from a
         let (intermediate, borrow1) = a.overflowing_sub(b);
@@ -83,64 +94,67 @@ impl Alu
         // Half-carry (borrow from bit 4)
         let half_borrow = ((a & 0x0F).wrapping_sub((b & 0x0F) + carry_in)) & 0x10 != 0;
 
-        cpu.flags.set_flag('Z', result == 0);
-        cpu.flags.set_flag('N', true);
-        cpu.flags.set_flag('H', half_borrow);
-        cpu.flags.set_flag('C', borrow1 || borrow2);
-
-        result
+        AluResult8 {
+            result,
+            z: result == 0,
+            n: true,
+            h: half_borrow,
+            c: borrow1 || borrow2,
+        }
     }
 
-    pub fn xor_8bit(&self, cpu: &mut Cpu, a: u8, b:u8) -> u8
-    {
-        let result =  a ^ b;
+    pub fn xor_8bit(&self, a: u8, b: u8) -> AluResult8 {
+        let result = a ^ b;
 
-        cpu.flags.set_flag('Z', result == 0);
-        cpu.flags.set_flag('N', false);
-        cpu.flags.set_flag('H', false);
-        cpu.flags.set_flag('C', false);
-
-        result
+        AluResult8 {
+            result,
+            z: result == 0,
+            n: false,
+            h: false,
+            c: false,
+        }
     }
 
-    pub fn and_8bit(&self, cpu: &mut Cpu, a: u8, b:u8) -> u8
-    {
+    pub fn and_8bit(&self, a: u8, b: u8) -> AluResult8 {
         let result = a & b;
 
-        cpu.flags.set_flag('Z', result == 0);
-        cpu.flags.set_flag('N', false);
-        cpu.flags.set_flag('H', true);
-        cpu.flags.set_flag('C', false);
-
-        result
+        AluResult8 {
+            result,
+            z: result == 0,
+            n: false,
+            h: true,
+            c: false,
+        }
     }
 
-    pub fn or_8bit(&self, cpu: &mut Cpu, a:u8, b:u8) -> u8
-    {
-        let result =  a | b;
+    pub fn or_8bit(&self, a: u8, b: u8) -> AluResult8 {
+        let result = a | b;
 
-        cpu.flags.set_flag('Z', result == 0);
-        cpu.flags.set_flag('N', false);
-        cpu.flags.set_flag('H', false);
-        cpu.flags.set_flag('C', false);
-
-        result
+        AluResult8 {
+            result,
+            z: result == 0,
+            n: false,
+            h: false,
+            c: false,
+        }
     }
 
-    pub fn cp_8bit(&self, cpu: &mut Cpu, a:u8, b:u8)
-    {
+    pub fn cp_8bit(&self, a: u8, b: u8) {
         let result = a - b;
 
         let half_borrow = (a & 0x0F) < (b & 0x0F);
         let carry = a < b;
 
-        cpu.flags.set_flag('Z', result == 0);
-        cpu.flags.set_flag('N', true);
-        cpu.flags.set_flag('H', half_borrow);
-        cpu.flags.set_flag('C', carry);
+        AluResult8 {
+            result,
+            z: result == 0,
+            n: true,
+            h: half_borrow,
+            c: carry,
+        };
     }
 
-    /*pub fn rst(&self, cpu: &mut Cpu, addr: u16) 
+    /*pub fn rst(&self, cpu: &mut Cpu, addr: u16)
     {
         let pc = cpu.get_register_16("PC");
         cpu.push_word(pc);

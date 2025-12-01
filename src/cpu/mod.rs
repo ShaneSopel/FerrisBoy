@@ -73,6 +73,47 @@ impl Cpu {
     pub fn decode(opcode: u8) -> Vec<MicroOp> {
         match opcode {
             0x00 => vec![MicroOp::Nop],
+            0x01 => vec![MicroOp::LdReg16FromMem {dst: Reg16::BC, src: Reg16::PC}],
+            0x02 => vec![MicroOp::LdMemFromReg8 { addr: (Reg16::BC), src: (Reg8::A) }],
+            0x03 => vec![MicroOp::IncReg16 { reg: (Reg16::BC) }],
+            0x04 => vec![MicroOp::IncReg8 { reg: (Reg8::B) }],
+            0x05 => vec![MicroOp::DecReg8 { reg: (Reg8::B)}],
+            //0x06 => vec![MicroOp::LdReg8}]
+            //0x07 => vec![MicroOp::]
+            //0x08 => vec![MicroOp::Ld]
+            0x09 => vec![MicroOp::AddReg16 { dst: (Reg16::HL), src: (Reg16::BC) }],
+            0x0A => vec![MicroOp::LdReg8FromMem { dst: (Reg8::A), src: (Reg16::BC) }],
+            0x0B => vec![MicroOp::DecReg16 { reg: (Reg16::BC) }],
+            0x0C => vec![MicroOp::IncReg8 { reg: (Reg8::C) }],
+            0x0D => vec![MicroOp::DecReg8 { reg: (Reg8::C) }],
+            //0x0E => vec![MicroOp::L]
+            //0x0F => vec![]
+            0x10 => vec![MicroOp::Stop],
+            0x11 => vec![MicroOp::LdReg16FromMem { dst: (Reg16::DE), src: (Reg16::PC) }],
+            0x12 => vec![MicroOp::LdMemFromReg8 { addr: (Reg16::DE), src: (Reg8::A) }],
+            0x13 => vec![MicroOp::IncReg16 { reg: (Reg16::DE) }],
+            0x14 => vec![MicroOp::IncReg8 { reg: (Reg8::D) }],
+            0x15 => vec![MicroOp::DecReg8 { reg: (Reg8::D) }],
+            //0x16 => vec![MicroOp::LdReg8}]
+            //0x17 => vec![MicroOp::]
+            0x18 => vec![MicroOp::JumpRelative { offset: (8) }],
+            0x19 => vec![MicroOp::AddReg16 { dst: (Reg16::HL), src: (Reg16::DE) }],
+            0x1A => vec![MicroOp::LdReg8FromMem { dst: (Reg8::A), src: (Reg16::DE) }],
+            0x1B => vec![MicroOp::DecReg16 { reg: (Reg16::DE) }],
+            0x1C => vec![MicroOp::IncReg8 { reg: (Reg8::E) }],
+            0x1D => vec![MicroOp::DecReg8 { reg: (Reg8::E) }],
+            //0x1E => vec![MicroOp::L]
+            //0x1F => vec![]
+            0x20 => vec![MicroOp::JumpRelativeIf { offset: (8), flag: ('z'), expected: (false) }],
+            0x21 => vec![MicroOp::LdReg16FromMem {dst: Reg16::HL, src: Reg16::PC}],
+            //0x22
+            0x23 => vec![MicroOp::IncReg16 { reg: (Reg16::HL) }],
+            0x24 => vec![MicroOp::IncReg8 { reg: (Reg8::H) }],
+            0x25 => vec![MicroOp::DecReg8 { reg: (Reg8::H) }],
+            //0x16 => vec![MicroOp::LdReg8}]
+            //0x17 => vec![MicroOp::]
+            
+
 
             _ => panic!("Unimplemented opcode: {:02X}", opcode),
         }

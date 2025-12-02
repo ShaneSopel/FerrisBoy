@@ -110,8 +110,39 @@ impl Cpu {
             0x23 => vec![MicroOp::IncReg16 { reg: (Reg16::HL) }],
             0x24 => vec![MicroOp::IncReg8 { reg: (Reg8::H) }],
             0x25 => vec![MicroOp::DecReg8 { reg: (Reg8::H) }],
-            //0x16 => vec![MicroOp::LdReg8}]
-            //0x17 => vec![MicroOp::]
+            //0x26 => vec![MicroOp::LdReg8}]
+            //0x27 => vec![MicroOp::]
+            0x28 => vec![MicroOp::JumpRelativeIf {offset:(8), flag: ('z'), expected: (true) }],
+            0x29 => vec![MicroOp::AddReg16 {dst: (Reg16::HL), src: (Reg16::HL)}],
+            //0x2A => vec![]
+            0x2B => vec![MicroOp::DecReg16 { reg: (Reg16::HL)}],
+            0x2C => vec![MicroOp::IncReg8 { reg: (Reg8::L)}],
+            0x2D => vec![MicroOp::DecReg8 { reg: (Reg8::L)}],
+            //0x2E => vec![],
+            0x2F => vec![MicroOp::Cpl],
+            0x30 => vec![MicroOp::JumpRelativeIf { offset: (8), flag: ('c'), expected: (false) }],
+            0x31 => vec![MicroOp::LdReg16FromMem {dst: Reg16::SP, src: Reg16::PC}],
+            //0x32 => vec![MicroOp::]
+            0x33 => vec![MicroOp::IncReg16 {reg: (Reg16::SP)}],
+            0x34 => vec![MicroOp::IncReg16 {reg: (Reg16::HL)}],
+            0x35 => vec![MicroOp::DecReg16 {reg: (Reg16::HL)}],
+            //0x36
+            0x37 => vec![MicroOp::Scf],
+            0x38 => vec![MicroOp::JumpRelativeIf {offset:(8), flag: ('c'), expected: (true) }],
+            0x39 => vec![MicroOp::AddReg16 {dst: (Reg16::HL), src: (Reg16::SP)}],
+            //0x3A
+            0x3B => vec![MicroOp::DecReg16 {reg: (Reg16::SP)}],
+            0x3C => vec![MicroOp::IncReg8 { reg: (Reg8::A)}],
+            0x3D => vec![MicroOp::DecReg8 { reg: (Reg8::A)}],
+            //0x3E
+            0x3F => vec![MicroOp::Ccf],
+            0x40 => vec![MicroOp::LdReg8FromReg8 { dst: (Reg8::B), src: (Reg8::B)}]
+
+
+
+
+
+
             
 
 

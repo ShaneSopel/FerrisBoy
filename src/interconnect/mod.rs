@@ -11,8 +11,6 @@
 //0xFF80 - 0xFFFE	High RAM (HRAM) (zero page)
 //FFFF	FFFF	Interrupt Enable register (IE)
 
-use crate::interconnect;
-
 pub struct Interconnect {
     pub rom: [u8; 0x8000],
     pub vram: [u8; 0x2000],

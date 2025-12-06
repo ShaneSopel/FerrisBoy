@@ -1,4 +1,3 @@
-use crate::cpu::registers::Flags;
 use crate::cpu::Reg16;
 use crate::cpu::Reg8;
 
@@ -31,7 +30,6 @@ pub enum MicroOp {
     LdReg8FromReg16 {
         dst: Reg8,
         src: Reg16,
-        byte: ByteSel,
     },
     IncReg8 {
         reg: Reg8,

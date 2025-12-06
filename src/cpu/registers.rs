@@ -1,81 +1,81 @@
 pub struct Registers {
-    pub PC: u16,
+    pub pc: u16,
 
-    pub SP: u16,
+    pub sp: u16,
 
-    pub A: u8,
+    pub a: u8,
 
-    pub F: Flags,
+    pub f: Flags,
 
-    pub B: u8,
+    pub b: u8,
 
-    pub C: u8,
+    pub c: u8,
 
-    pub D: u8,
+    pub d: u8,
 
-    pub E: u8,
+    pub e: u8,
 
-    pub H: u8,
+    pub h: u8,
 
-    pub L: u8,
+    pub l: u8,
 
-    pub IE: u16,
+    pub ie: u16,
 
-    pub IR: u16,
+    pub ir: u16,
 }
 
 pub struct Flags {
-    pub Z: bool, // Zero
+    pub z: bool, // Zero
 
-    pub H: bool, // Half Carry Flag
+    pub h: bool, // Half Carry Flag
 
-    pub N: bool, // Subtract Flag
+    pub n: bool, // Subtract Flag
 
-    pub C: bool, // Carry Flag
+    pub c: bool, // Carry Flag
 }
 
 impl Flags {
     pub fn new() -> Self {
         Self {
-            Z: false,
-            N: false,
-            H: false,
-            C: false,
+            z: false,
+            n: false,
+            h: false,
+            c: false,
         }
     }
 
     pub fn set_flag(&mut self, flag: char, value: bool) {
         match flag {
-            'Z' | 'z' => self.Z = value,
-            'N' | 'n' => self.N = value,
-            'H' | 'h' => self.H = value,
-            'C' | 'c' => self.C = value,
+            'Z' | 'z' => self.z = value,
+            'N' | 'n' => self.n = value,
+            'H' | 'h' => self.h = value,
+            'C' | 'c' => self.c = value,
             _ => panic!("Invalid flag {}", flag),
         }
     }
 
     pub fn get_flag(&self, flag: char) -> bool {
         match flag {
-            'Z' | 'z' => self.Z,
-            'N' | 'n' => self.N,
-            'H' | 'h' => self.H,
-            'C' | 'c' => self.C,
+            'Z' | 'z' => self.z,
+            'N' | 'n' => self.n,
+            'H' | 'h' => self.h,
+            'C' | 'c' => self.c,
             _ => panic!("Invalid flag {}", flag),
         }
     }
     pub fn to_u8(&self) -> u8 {
-        ((self.Z as u8) << 7)
-            | ((self.N as u8) << 6)
-            | ((self.H as u8) << 5)
-            | ((self.C as u8) << 4)
+        ((self.z as u8) << 7)
+            | ((self.n as u8) << 6)
+            | ((self.h as u8) << 5)
+            | ((self.c as u8) << 4)
     }
 
     pub fn from_u8(f: u8) -> Self {
         Flags {
-            Z: f & 0x80 != 0,
-            N: f & 0x40 != 0,
-            H: f & 0x20 != 0,
-            C: f & 0x10 != 0,
+            z: f & 0x80 != 0,
+            n: f & 0x40 != 0,
+            h: f & 0x20 != 0,
+            c: f & 0x10 != 0,
         }
     }
 }
@@ -105,64 +105,64 @@ pub enum Reg16 {
 impl Registers {
     pub fn get8(&self, reg: Reg8) -> u8 {
         match reg {
-            Reg8::A => self.A,
-            Reg8::B => self.B,
-            Reg8::C => self.C,
-            Reg8::D => self.D,
-            Reg8::E => self.E,
-            Reg8::F => self.F.to_u8(),
-            Reg8::H => self.H,
-            Reg8::L => self.L,
+            Reg8::A => self.a,
+            Reg8::B => self.b,
+            Reg8::C => self.c,
+            Reg8::D => self.d,
+            Reg8::E => self.e,
+            Reg8::F => self.f.to_u8(),
+            Reg8::H => self.h,
+            Reg8::L => self.l,
         }
     }
 
     pub fn set8(&mut self, reg: Reg8, val: u8) {
         match reg {
-            Reg8::A => self.A = val,
-            Reg8::B => self.B = val,
-            Reg8::C => self.C = val,
-            Reg8::D => self.D = val,
-            Reg8::E => self.E = val,
-            Reg8::F => self.F = Flags::from_u8(val),
-            Reg8::H => self.H = val,
-            Reg8::L => self.L = val,
+            Reg8::A => self.a = val,
+            Reg8::B => self.b = val,
+            Reg8::C => self.c = val,
+            Reg8::D => self.d = val,
+            Reg8::E => self.e = val,
+            Reg8::F => self.f = Flags::from_u8(val),
+            Reg8::H => self.h = val,
+            Reg8::L => self.l = val,
         }
     }
 
     pub fn set16(&mut self, reg: Reg16, val: u16) {
         match reg {
             Reg16::AF => {
-                self.A = (val >> 8) as u8;
-                self.F = Flags::from_u8((val & 0xF0) as u8);
+                self.a = (val >> 8) as u8;
+                self.f = Flags::from_u8((val & 0xF0) as u8);
             }
 
             Reg16::BC => {
-                self.B = (val >> 8) as u8;
-                self.C = (val & 0xFF) as u8;
+                self.b = (val >> 8) as u8;
+                self.c = (val & 0xFF) as u8;
             }
 
             Reg16::DE => {
-                self.D = (val >> 8) as u8;
-                self.E = (val & 0xFF) as u8;
+                self.d = (val >> 8) as u8;
+                self.e = (val & 0xFF) as u8;
             }
 
             Reg16::HL => {
-                self.H = (val >> 8) as u8;
-                self.L = (val & 0xFF) as u8;
+                self.h = (val >> 8) as u8;
+                self.l = (val & 0xFF) as u8;
             }
-            Reg16::SP => self.SP = val,
-            Reg16::PC => self.PC = val,
+            Reg16::SP => self.sp = val,
+            Reg16::PC => self.pc = val,
         }
     }
 
     pub fn get16(&self, reg: Reg16) -> u16 {
         match reg {
-            Reg16::AF => ((self.A as u16) << 8) | (self.F.to_u8() as u16),
-            Reg16::BC => ((self.B as u16) << 8) | (self.C as u16),
-            Reg16::DE => ((self.D as u16) << 8) | (self.E as u16),
-            Reg16::HL => ((self.H as u16) << 8) | (self.L as u16),
-            Reg16::SP => self.SP,
-            Reg16::PC => self.PC,
+            Reg16::AF => ((self.a as u16) << 8) | (self.f.to_u8() as u16),
+            Reg16::BC => ((self.b as u16) << 8) | (self.c as u16),
+            Reg16::DE => ((self.d as u16) << 8) | (self.e as u16),
+            Reg16::HL => ((self.h as u16) << 8) | (self.l as u16),
+            Reg16::SP => self.sp,
+            Reg16::PC => self.pc,
         }
     }
 }

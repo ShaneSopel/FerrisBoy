@@ -1,12 +1,6 @@
 use crate::cpu::Reg16;
 use crate::cpu::Reg8;
 
-#[derive(Debug, Clone, Copy)]
-pub enum ByteSel {
-    High,
-    Low,
-}
-
 pub enum MicroOp {
     Nop,
     Halt,
@@ -19,17 +13,50 @@ pub enum MicroOp {
         dst: Reg8,
         src: Reg16,
     },
+    LdReg8FromImm {
+        dst: Reg8,
+    },
+    LdReg8FromMemIncHL {
+        dst: Reg8,
+    },
+
+    LdMemFromReg8IncHL {
+        src: Reg8,
+    },
+    LdMemFromReg8DecHL {
+        src: Reg8,
+    },
+    LdReg8FromMemDecHL {
+        dst: Reg8,
+    },
     LdMemFromReg8 {
         addr: Reg16,
         src: Reg8,
+    },
+    LdA8FromA {
+        offset: u8,
+    },
+    LdAFromA8 {
+        offset: u8,
+    },
+    LdCFromA,
+    LdAFromC,
+    LdMemFromA {
+        addr: u16,
     },
     LdReg16FromMem {
         dst: Reg16,
         src: Reg16,
     },
+    LdMemImm16FromReg16 {
+        src: Reg16,
+    },
     LdReg8FromReg16 {
         dst: Reg8,
         src: Reg16,
+    },
+    LdMemFromImm8 {
+        addr: Reg16,
     },
     IncReg8 {
         reg: Reg8,
@@ -53,7 +80,7 @@ pub enum MicroOp {
     },
     AddReg8Imm {
         dst: Reg8,
-        src: u8,
+        addr: u8,
     },
     AddReg16 {
         dst: Reg16,
@@ -67,6 +94,10 @@ pub enum MicroOp {
         dst: Reg8,
         src: Reg16,
     },
+    AddCarry8Imm {
+        dst: Reg8,
+        addr: u8,
+    },
     SubReg8 {
         dst: Reg8,
         src: Reg8,
@@ -74,6 +105,10 @@ pub enum MicroOp {
     SubReg8Mem {
         dst: Reg8,
         src: Reg16,
+    },
+    SubReg8Imm {
+        dst: Reg8,
+        addr: u8,
     },
 
     SubCarry8 {
@@ -85,6 +120,10 @@ pub enum MicroOp {
         dst: Reg8,
         src: Reg16,
     },
+    SubCarry8Imm {
+        dst: Reg8,
+        addr: u8,
+    },
 
     XorReg8 {
         dst: Reg8,
@@ -94,6 +133,10 @@ pub enum MicroOp {
         dst: Reg8,
         src: Reg16,
     },
+    XorReg8Imm {
+        dst: Reg8,
+        addr: u8,
+    },
     CpReg8 {
         dst: Reg8,
         src: Reg8,
@@ -101,6 +144,10 @@ pub enum MicroOp {
     CpReg8Mem {
         dst: Reg8,
         src: Reg16,
+    },
+    CpReg8Imm {
+        dst: Reg8,
+        addr: u8,
     },
     OrReg8 {
         dst: Reg8,
@@ -112,7 +159,7 @@ pub enum MicroOp {
     },
     OrReg8Imm {
         dst: Reg8,
-        src: u8,
+        addr: u8,
     },
     AndReg8 {
         dst: Reg8,
@@ -121,6 +168,10 @@ pub enum MicroOp {
     AndReg8Mem {
         dst: Reg8,
         src: Reg16,
+    },
+    AndReg8Imm {
+        dst: Reg8,
+        addr: u8,
     },
     PushReg16 {
         reg: Reg16,
@@ -144,6 +195,7 @@ pub enum MicroOp {
         flag: char,
         expected: bool,
     },
+    JumpHL,
     CallAbsolute {
         addr: u16,
     },
@@ -157,9 +209,14 @@ pub enum MicroOp {
         flag: char,
         expected: bool,
     },
+    Reti {},
     Restart {
         vector: u16,
     },
+    Rlca,
+    Rrca,
+    Rla,
+    Rra,
     Di,
     Ei,
     Cpl,
@@ -193,9 +250,7 @@ pub enum MicroOp {
     AddImmToSP {
         imm: i8,
     },
-    LdHLSPPlusR8 {
-        r8: i8,
-    },
+    LdHLSPPlusR8,
     Illegal {
         opcode: u8,
     },

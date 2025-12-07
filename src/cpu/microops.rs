@@ -63,24 +63,43 @@ pub enum MicroOp {
         dst: Reg8,
         src: Reg8,
     },
+    AddCarry8Mem {
+        dst: Reg8,
+        src: Reg16,
+    },
     SubReg8 {
         dst: Reg8,
         src: Reg8,
     },
+    SubReg8Mem {
+        dst: Reg8,
+        src: Reg16,
+    },
+
     SubCarry8 {
         dst: Reg8,
         src: Reg8,
     },
+
+    SubCarry8Mem {
+        dst: Reg8,
+        src: Reg16,
+    },
+
     XorReg8 {
         dst: Reg8,
         src: Reg8,
     },
+    XorReg8Mem {
+        dst: Reg8,
+        src: Reg16,
+    },
     CpReg8 {
-        a: Reg8,
+        dst: Reg8,
         src: Reg8,
     },
     CpReg8Mem {
-        a: Reg8,
+        dst: Reg8,
         src: Reg16,
     },
     OrReg8 {
@@ -99,6 +118,10 @@ pub enum MicroOp {
         dst: Reg8,
         src: Reg8,
     },
+    AndReg8Mem {
+        dst: Reg8,
+        src: Reg16,
+    },
     PushReg16 {
         reg: Reg16,
     },
@@ -106,7 +129,7 @@ pub enum MicroOp {
         reg: Reg16,
     },
     JumpAbsolute {
-        addr: Reg16,
+        addr: u16,
     },
     JumpAbsoluteIf {
         addr: u16,

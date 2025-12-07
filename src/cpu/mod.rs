@@ -70,7 +70,19 @@ impl Cpu {
         byte
     }
 
-    pub fn decode(opcode: u8) -> Vec<MicroOp> {
+    fn fetch16(&mut self) -> u16 {
+        let lo = self.inter.read_byte(self.regs.get16(Reg16::PC)) as u16;
+        self.regs
+            .set16(Reg16::PC, self.regs.get16(Reg16::PC).wrapping_add(1));
+
+        let hi = self.inter.read_byte(self.regs.get16(Reg16::PC)) as u16;
+        self.regs
+            .set16(Reg16::PC, self.regs.get16(Reg16::PC).wrapping_add(1));
+
+        (hi << 8) | lo
+    }
+
+    pub fn decode(&mut self, opcode: u8) -> Vec<MicroOp> {
         match opcode {
             0x00 => vec![MicroOp::Nop],
             0x01 => vec![MicroOp::LdReg16FromMem {
@@ -212,7 +224,10 @@ impl Cpu {
                 dst: (Reg8::B),
                 src: (Reg8::L),
             }],
-            0x46 => vec![MicroOp::LdReg8FromReg16 { dst: (Reg8::B), src: (Reg16::HL) }],
+            0x46 => vec![MicroOp::LdReg8FromReg16 {
+                dst: (Reg8::B),
+                src: (Reg16::HL),
+            }],
             0x47 => vec![MicroOp::LdReg8FromReg8 {
                 dst: (Reg8::B),
                 src: (Reg8::A),
@@ -241,49 +256,55 @@ impl Cpu {
                 dst: (Reg8::C),
                 src: (Reg8::L),
             }],
-            0x4E => vec![MicroOp::LdReg8FromReg16 { dst: (Reg8::C), src: (Reg16::HL)}],
+            0x4E => vec![MicroOp::LdReg8FromReg16 {
+                dst: (Reg8::C),
+                src: (Reg16::HL),
+            }],
             0x4F => vec![MicroOp::LdReg8FromReg8 {
                 dst: (Reg8::C),
                 src: (Reg8::A),
             }],
-              0x50 => vec![MicroOp::LdReg8FromReg8 {
+            0x50 => vec![MicroOp::LdReg8FromReg8 {
                 dst: (Reg8::D),
                 src: (Reg8::B),
             }],
-              0x51 => vec![MicroOp::LdReg8FromReg8 {
+            0x51 => vec![MicroOp::LdReg8FromReg8 {
                 dst: (Reg8::D),
                 src: (Reg8::C),
             }],
-              0x52 => vec![MicroOp::LdReg8FromReg8 {
+            0x52 => vec![MicroOp::LdReg8FromReg8 {
                 dst: (Reg8::D),
                 src: (Reg8::D),
             }],
-              0x53 => vec![MicroOp::LdReg8FromReg8 {
+            0x53 => vec![MicroOp::LdReg8FromReg8 {
                 dst: (Reg8::D),
                 src: (Reg8::E),
             }],
-              0x54 => vec![MicroOp::LdReg8FromReg8 {
+            0x54 => vec![MicroOp::LdReg8FromReg8 {
                 dst: (Reg8::D),
                 src: (Reg8::H),
             }],
-              0x55 => vec![MicroOp::LdReg8FromReg8 {
+            0x55 => vec![MicroOp::LdReg8FromReg8 {
                 dst: (Reg8::D),
                 src: (Reg8::L),
             }],
-            0x56 => vec![MicroOp::LdReg8FromReg16 { dst: (Reg8::D), src: (Reg16::HL)}],
-                          0x57 => vec![MicroOp::LdReg8FromReg8 {
+            0x56 => vec![MicroOp::LdReg8FromReg16 {
+                dst: (Reg8::D),
+                src: (Reg16::HL),
+            }],
+            0x57 => vec![MicroOp::LdReg8FromReg8 {
                 dst: (Reg8::D),
                 src: (Reg8::A),
             }],
-                0x58 => vec![MicroOp::LdReg8FromReg8 {
+            0x58 => vec![MicroOp::LdReg8FromReg8 {
                 dst: (Reg8::E),
                 src: (Reg8::B),
             }],
-                0x59 => vec![MicroOp::LdReg8FromReg8 {
+            0x59 => vec![MicroOp::LdReg8FromReg8 {
                 dst: (Reg8::E),
                 src: (Reg8::C),
             }],
-                          0x5A => vec![MicroOp::LdReg8FromReg8 {
+            0x5A => vec![MicroOp::LdReg8FromReg8 {
                 dst: (Reg8::E),
                 src: (Reg8::D),
             }],
@@ -300,7 +321,10 @@ impl Cpu {
                 dst: (Reg8::E),
                 src: (Reg8::L),
             }],
-            0x5E => vec![MicroOp::LdReg8FromReg16 { dst: (Reg8::E), src: (Reg16::HL)}],
+            0x5E => vec![MicroOp::LdReg8FromReg16 {
+                dst: (Reg8::E),
+                src: (Reg16::HL),
+            }],
             0x5F => vec![MicroOp::LdReg8FromReg8 {
                 dst: (Reg8::E),
                 src: (Reg8::A),
@@ -329,7 +353,10 @@ impl Cpu {
                 dst: (Reg8::H),
                 src: (Reg8::L),
             }],
-            0x66 => vec![MicroOp::LdReg8FromReg16 { dst: (Reg8::H), src: (Reg16::HL)}],
+            0x66 => vec![MicroOp::LdReg8FromReg16 {
+                dst: (Reg8::H),
+                src: (Reg16::HL),
+            }],
             0x67 => vec![MicroOp::LdReg8FromReg8 {
                 dst: (Reg8::H),
                 src: (Reg8::A),
@@ -358,12 +385,415 @@ impl Cpu {
                 dst: (Reg8::L),
                 src: (Reg8::L),
             }],
-            0x6E => vec![MicroOp::LdReg8FromReg16 { dst: (Reg8::L), src: (Reg16::HL)}],
+            0x6E => vec![MicroOp::LdReg8FromReg16 {
+                dst: (Reg8::L),
+                src: (Reg16::HL),
+            }],
             0x6F => vec![MicroOp::LdReg8FromReg8 {
                 dst: (Reg8::L),
                 src: (Reg8::A),
             }],
+            0x70 => vec![MicroOp::LdMemFromReg8 {
+                addr: (Reg16::HL),
+                src: (Reg8::B),
+            }],
+            0x71 => vec![MicroOp::LdMemFromReg8 {
+                addr: (Reg16::HL),
+                src: (Reg8::C),
+            }],
+            0x72 => vec![MicroOp::LdMemFromReg8 {
+                addr: (Reg16::HL),
+                src: (Reg8::D),
+            }],
+            0x73 => vec![MicroOp::LdMemFromReg8 {
+                addr: (Reg16::HL),
+                src: (Reg8::E),
+            }],
+            0x74 => vec![MicroOp::LdMemFromReg8 {
+                addr: (Reg16::HL),
+                src: (Reg8::H),
+            }],
+            0x75 => vec![MicroOp::LdMemFromReg8 {
+                addr: (Reg16::HL),
+                src: (Reg8::L),
+            }],
+            0x76 => vec![MicroOp::Halt],
+            0x77 => vec![MicroOp::LdMemFromReg8 {
+                addr: (Reg16::HL),
+                src: (Reg8::A),
+            }],
 
+            0x78 => vec![MicroOp::LdReg8FromReg8 {
+                dst: (Reg8::A),
+                src: (Reg8::B),
+            }],
+
+            0x79 => vec![MicroOp::LdReg8FromReg8 {
+                dst: (Reg8::A),
+                src: (Reg8::C),
+            }],
+
+            0x7A => vec![MicroOp::LdReg8FromReg8 {
+                dst: (Reg8::A),
+                src: (Reg8::D),
+            }],
+
+            0x7B => vec![MicroOp::LdReg8FromReg8 {
+                dst: (Reg8::A),
+                src: (Reg8::E),
+            }],
+
+            0x7C => vec![MicroOp::LdReg8FromReg8 {
+                dst: (Reg8::A),
+                src: (Reg8::H),
+            }],
+
+            0x7D => vec![MicroOp::LdReg8FromReg8 {
+                dst: (Reg8::A),
+                src: (Reg8::L),
+            }],
+
+            0x7E => vec![MicroOp::LdReg8FromReg16 {
+                dst: (Reg8::A),
+                src: (Reg16::HL),
+            }],
+
+            0x7F => vec![MicroOp::LdReg8FromReg8 {
+                dst: (Reg8::A),
+                src: (Reg8::A),
+            }],
+
+            0x80 => vec![MicroOp::AddReg8 {
+                dst: (Reg8::A),
+                src: (Reg8::B),
+            }],
+            0x81 => vec![MicroOp::AddReg8 {
+                dst: (Reg8::A),
+                src: (Reg8::C),
+            }],
+            0x82 => vec![MicroOp::AddReg8 {
+                dst: (Reg8::A),
+                src: (Reg8::D),
+            }],
+            0x83 => vec![MicroOp::AddReg8 {
+                dst: (Reg8::A),
+                src: (Reg8::E),
+            }],
+            0x84 => vec![MicroOp::AddReg8 {
+                dst: (Reg8::A),
+                src: (Reg8::H),
+            }],
+            0x85 => vec![MicroOp::AddReg8 {
+                dst: (Reg8::A),
+                src: (Reg8::L),
+            }],
+            0x86 => vec![MicroOp::AddReg8Mem {
+                dst: (Reg8::A),
+                src: (Reg16::HL),
+            }],
+            0x87 => vec![MicroOp::AddReg8 {
+                dst: (Reg8::A),
+                src: (Reg8::A),
+            }],
+            0x88 => vec![MicroOp::AddCarry8 {
+                dst: (Reg8::A),
+                src: (Reg8::B),
+            }],
+            0x89 => vec![MicroOp::AddCarry8 {
+                dst: (Reg8::A),
+                src: (Reg8::C),
+            }],
+            0x8A => vec![MicroOp::AddCarry8 {
+                dst: (Reg8::A),
+                src: (Reg8::D),
+            }],
+            0x8B => vec![MicroOp::AddCarry8 {
+                dst: (Reg8::A),
+                src: (Reg8::E),
+            }],
+            0x8C => vec![MicroOp::AddCarry8 {
+                dst: (Reg8::A),
+                src: (Reg8::H),
+            }],
+            0x8D => vec![MicroOp::AddCarry8 {
+                dst: (Reg8::A),
+                src: (Reg8::L),
+            }],
+
+            0x8E => vec![MicroOp::AddCarry8Mem {
+                dst: (Reg8::A),
+                src: (Reg16::HL),
+            }],
+
+            0x8F => vec![MicroOp::AddCarry8 {
+                dst: (Reg8::A),
+                src: (Reg8::A),
+            }],
+
+            0x90 => vec![MicroOp::SubReg8 {
+                dst: (Reg8::A),
+                src: (Reg8::B),
+            }],
+
+            0x91 => vec![MicroOp::SubReg8 {
+                dst: (Reg8::A),
+                src: (Reg8::C),
+            }],
+
+            0x92 => vec![MicroOp::SubReg8 {
+                dst: (Reg8::A),
+                src: (Reg8::D),
+            }],
+
+            0x93 => vec![MicroOp::SubReg8 {
+                dst: (Reg8::A),
+                src: (Reg8::E),
+            }],
+
+            0x94 => vec![MicroOp::SubReg8 {
+                dst: (Reg8::A),
+                src: (Reg8::H),
+            }],
+
+            0x95 => vec![MicroOp::SubReg8 {
+                dst: (Reg8::A),
+                src: (Reg8::L),
+            }],
+
+            0x96 => vec![MicroOp::SubCarry8Mem {
+                dst: (Reg8::A),
+                src: (Reg16::HL),
+            }],
+
+            0x97 => vec![MicroOp::SubReg8 {
+                dst: (Reg8::A),
+                src: (Reg8::A),
+            }],
+
+            0x98 => vec![MicroOp::SubCarry8 {
+                dst: (Reg8::A),
+                src: (Reg8::B),
+            }],
+            0x99 => vec![MicroOp::SubCarry8 {
+                dst: (Reg8::A),
+                src: (Reg8::C),
+            }],
+            0x9A => vec![MicroOp::SubCarry8 {
+                dst: (Reg8::A),
+                src: (Reg8::D),
+            }],
+            0x9B => vec![MicroOp::SubCarry8 {
+                dst: (Reg8::A),
+                src: (Reg8::E),
+            }],
+            0x9C => vec![MicroOp::SubCarry8 {
+                dst: (Reg8::A),
+                src: (Reg8::H),
+            }],
+            0x9D => vec![MicroOp::SubCarry8 {
+                dst: (Reg8::A),
+                src: (Reg8::L),
+            }],
+            0x9E => vec![MicroOp::SubCarry8Mem {
+                dst: (Reg8::A),
+                src: (Reg16::HL),
+            }],
+            0x9F => vec![MicroOp::SubCarry8 {
+                dst: (Reg8::A),
+                src: (Reg8::A),
+            }],
+            0xA0 => vec![MicroOp::AndReg8 {
+                dst: (Reg8::A),
+                src: (Reg8::B),
+            }],
+
+            0xA1 => vec![MicroOp::AndReg8 {
+                dst: (Reg8::A),
+                src: (Reg8::C),
+            }],
+            0xA2 => vec![MicroOp::AndReg8 {
+                dst: (Reg8::A),
+                src: (Reg8::D),
+            }],
+            0xA3 => vec![MicroOp::AndReg8 {
+                dst: (Reg8::A),
+                src: (Reg8::E),
+            }],
+            0xA4 => vec![MicroOp::AndReg8 {
+                dst: (Reg8::A),
+                src: (Reg8::H),
+            }],
+            0xA5 => vec![MicroOp::AndReg8 {
+                dst: (Reg8::A),
+                src: (Reg8::L),
+            }],
+            0xA6 => vec![MicroOp::AndReg8Mem {
+                dst: (Reg8::A),
+                src: (Reg16::HL),
+            }],
+            0xA7 => vec![MicroOp::AndReg8 {
+                dst: (Reg8::A),
+                src: (Reg8::A),
+            }],
+            0xA8 => vec![MicroOp::XorReg8 {
+                dst: (Reg8::A),
+                src: (Reg8::B),
+            }],
+            0xA9 => vec![MicroOp::XorReg8 {
+                dst: (Reg8::A),
+                src: (Reg8::C),
+            }],
+            0xAA => vec![MicroOp::XorReg8 {
+                dst: (Reg8::A),
+                src: (Reg8::D),
+            }],
+            0xAB => vec![MicroOp::XorReg8 {
+                dst: (Reg8::A),
+                src: (Reg8::E),
+            }],
+            0xAC => vec![MicroOp::XorReg8 {
+                dst: (Reg8::A),
+                src: (Reg8::H),
+            }],
+            0xAD => vec![MicroOp::XorReg8 {
+                dst: (Reg8::A),
+                src: (Reg8::L),
+            }],
+            0xAE => vec![MicroOp::XorReg8Mem {
+                dst: (Reg8::A),
+                src: (Reg16::HL),
+            }],
+
+            0xAF => vec![MicroOp::XorReg8 {
+                dst: (Reg8::A),
+                src: (Reg8::A),
+            }],
+
+            0xB0 => vec![MicroOp::OrReg8 {
+                dst: (Reg8::A),
+                src: (Reg8::B),
+            }],
+            0xB1 => vec![MicroOp::OrReg8 {
+                dst: (Reg8::A),
+                src: (Reg8::C),
+            }],
+            0xB2 => vec![MicroOp::OrReg8 {
+                dst: (Reg8::A),
+                src: (Reg8::D),
+            }],
+            0xB3 => vec![MicroOp::OrReg8 {
+                dst: (Reg8::A),
+                src: (Reg8::E),
+            }],
+            0xB4 => vec![MicroOp::OrReg8 {
+                dst: (Reg8::A),
+                src: (Reg8::H),
+            }],
+            0xB5 => vec![MicroOp::OrReg8 {
+                dst: (Reg8::A),
+                src: (Reg8::L),
+            }],
+
+            0xB6 => vec![MicroOp::OrReg8Mem {
+                dst: (Reg8::A),
+                src: (Reg16::HL),
+            }],
+            0xB7 => vec![MicroOp::OrReg8 {
+                dst: (Reg8::A),
+                src: (Reg8::A),
+            }],
+            0xB8 => vec![MicroOp::CpReg8 {
+                dst: (Reg8::A),
+                src: (Reg8::B),
+            }],
+            0xB9 => vec![MicroOp::CpReg8 {
+                dst: (Reg8::A),
+                src: (Reg8::C),
+            }],
+            0xBA => vec![MicroOp::CpReg8 {
+                dst: (Reg8::A),
+                src: (Reg8::D),
+            }],
+            0xBB => vec![MicroOp::CpReg8 {
+                dst: (Reg8::A),
+                src: (Reg8::E),
+            }],
+            0xBC => vec![MicroOp::CpReg8 {
+                dst: (Reg8::A),
+                src: (Reg8::H),
+            }],
+            0xBD => vec![MicroOp::CpReg8 {
+                dst: (Reg8::A),
+                src: (Reg8::L),
+            }],
+            0xBE => vec![MicroOp::CpReg8Mem {
+                dst: (Reg8::A),
+                src: (Reg16::HL),
+            }],
+            0xBF => vec![MicroOp::CpReg8 {
+                dst: (Reg8::A),
+                src: (Reg8::A),
+            }],
+            0xC0 => vec![MicroOp::ReturnIf {
+                flag: ('f'),
+                expected: (false),
+            }],
+            0xC1 => vec![MicroOp::PopReg16 { reg: (Reg16::BC) }],
+            0xC2 => {
+                let addr = self.fetch16();
+                vec![MicroOp::JumpAbsoluteIf {
+                    addr: (addr),
+                    flag: ('z'),
+                    expected: (false),
+                }]
+            }
+            0xC3 => {
+                let addr = self.fetch16();
+                vec![MicroOp::JumpAbsolute { addr: (addr) }]
+            }
+            0xC4 => {
+                let addr = self.fetch16();
+                vec![MicroOp::CallAbsoluteIf {
+                    addr,
+                    flag: ('z'),
+                    expected: (false),
+                }]
+            }
+            0xC5 => vec![MicroOp::PushReg16 { reg: (Reg16::BC) }],
+            0xC6 => {
+                let addr = self.fetch8();
+                vec![MicroOp::AddReg8Imm {
+                    dst: (Reg8::A),
+                    src: (addr),
+                }]
+            }
+            0xC7 => vec![MicroOp::Restart { vector: (0) }],
+            0xC8 => vec![MicroOp::ReturnIf {
+                flag: ('z'),
+                expected: (true),
+            }],
+            0xC9 => vec![MicroOp::Return {}],
+            0xCA => {
+                let addr = self.fetch16();
+                vec![MicroOp::JumpAbsoluteIf {
+                    addr,
+                    flag: ('z'),
+                    expected: (true),
+                }]
+            }
+            0xCC => {
+                let addr: u16 = self.fetch16();
+                vec![MicroOp::CallAbsoluteIf {
+                    addr,
+                    flag: ('z'),
+                    expected: (true),
+                }]
+            }
+            0xCD => {
+                let addr: u16 = self.fetch16();
+                vec![MicroOp::CallAbsolute { addr }]
+            }
+            //0xCE => {let addr = self.fetch8(); vec![MicroOp::AddCarry8Mem { dst: (Reg8::A), src: (addr) }]},
             _ => panic!("Unimplemented opcode: {:02X}", opcode),
         }
     }
@@ -509,6 +939,17 @@ impl Cpu {
                 self.regs.set8(dst, result);
             }
 
+            MicroOp::AddCarry8Mem { dst, src } => {
+                let mem = self.regs.get16(src);
+                let value = self.inter.read_byte(mem);
+                let a = self.regs.get8(dst);
+                let carry = self.flags.get_flag('c') as u8;
+
+                let alu_out = self.alu.add_8bit(a, value + carry);
+                let result = alu_out.result;
+                self.regs.set8(dst, result);
+            }
+
             MicroOp::SubReg8 { dst, src } => {
                 let a = self.regs.get8(dst);
                 let b = self.regs.get8(src);
@@ -521,6 +962,17 @@ impl Cpu {
                 self.flags.set_flag('c', alu_out.c);
 
                 let result = alu_out.result;
+                self.regs.set8(dst, result);
+            }
+
+            MicroOp::SubReg8Mem { dst, src } => {
+                let mem = self.regs.get16(src);
+                let value = self.inter.read_byte(mem);
+                let a = self.regs.get8(dst);
+
+                let alu_out = self.alu.sub_8bit(a, value);
+                let result = alu_out.result;
+
                 self.regs.set8(dst, result);
             }
 
@@ -540,6 +992,18 @@ impl Cpu {
                 self.regs.set8(dst, result);
             }
 
+            MicroOp::SubCarry8Mem { dst, src } => {
+                let mem = self.regs.get16(src);
+                let value = self.inter.read_byte(mem);
+                let a = self.regs.get8(dst);
+                let carry = self.flags.get_flag('c') as u8;
+
+                let alu_out = self.alu.sub_8bit(a, value + carry);
+                let result = alu_out.result;
+
+                self.regs.set8(dst, result);
+            }
+
             MicroOp::XorReg8 { dst, src } => {
                 let a = self.regs.get8(dst);
                 let b = self.regs.get8(src);
@@ -555,19 +1019,40 @@ impl Cpu {
                 self.regs.set8(dst, result);
             }
 
-            MicroOp::CpReg8 { a, src } => {
-                let na = self.regs.a;
-                let b = self.regs.get8(src);
+            MicroOp::XorReg8Mem { dst, src } => {
+                let mem = self.regs.get16(src);
+                let value = self.inter.read_byte(mem);
+                let a = self.regs.get8(dst);
 
-                let results = self.alu.cp_8bit(na, b);
+                let alu_out = self.alu.xor_8bit(a, value);
+                let result = alu_out.result;
+
+                self.regs.set8(dst, result);
             }
 
-            MicroOp::CpReg8Mem { a, src } => {
-                let a = self.regs.a;
+            MicroOp::CpReg8 { dst, src } => {
+                let a = self.regs.get8(dst);
+                let b = self.regs.get8(src);
+
+                let alu_out = self.alu.cp_8bit(a, b);
+
+                self.flags.set_flag('z', alu_out.z);
+                self.flags.set_flag('n', alu_out.n);
+                self.flags.set_flag('h', alu_out.h);
+                self.flags.set_flag('c', alu_out.c);
+            }
+
+            MicroOp::CpReg8Mem { dst, src } => {
+                let a = self.regs.get8(dst);
                 let b = self.regs.get16(src);
                 let value = self.inter.read_byte(b);
 
-                let results = self.alu.cp_8bit(a, value);
+                let alu_out = self.alu.cp_8bit(a, value);
+
+                self.flags.set_flag('z', alu_out.z);
+                self.flags.set_flag('n', alu_out.n);
+                self.flags.set_flag('h', alu_out.h);
+                self.flags.set_flag('c', alu_out.c);
             }
 
             MicroOp::OrReg8 { dst, src } => {
@@ -630,6 +1115,17 @@ impl Cpu {
                 self.regs.set8(dst, result);
             }
 
+            MicroOp::AndReg8Mem { dst, src } => {
+                let mem = self.regs.get16(src);
+                let value = self.inter.read_byte(mem);
+
+                let a = self.regs.get8(dst);
+                let alu_out = self.alu.and_8bit(a, value);
+
+                let result = alu_out.result;
+                self.regs.set8(dst, result);
+            }
+
             MicroOp::PushReg16 { reg } => {
                 let val = self.regs.get16(reg);
                 let hi = (val >> 8) as u8;
@@ -654,8 +1150,7 @@ impl Cpu {
             }
 
             MicroOp::JumpAbsolute { addr } => {
-                let address = self.regs.get16(addr);
-                self.regs.pc = address;
+                self.regs.pc = addr;
             }
 
             MicroOp::JumpAbsoluteIf {

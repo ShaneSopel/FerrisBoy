@@ -1,5 +1,3 @@
-use crate::cpu::Cpu;
-
 pub struct Alu;
 
 pub struct AluResult8 {
@@ -139,7 +137,7 @@ impl Alu {
         }
     }
 
-    pub fn cp_8bit(&self, a: u8, b: u8) {
+    pub fn cp_8bit(&self, a: u8, b: u8) -> AluResult8 {
         let result = a - b;
 
         let half_borrow = (a & 0x0F) < (b & 0x0F);
@@ -151,7 +149,7 @@ impl Alu {
             n: true,
             h: half_borrow,
             c: carry,
-        };
+        }
     }
 
     /*pub fn rst(&self, cpu: &mut Cpu, addr: u16)

@@ -1,8 +1,10 @@
 pub mod alu;
+pub mod logging;
 pub mod microops;
 pub mod registers;
 
 use crate::cpu::alu::Alu;
+use crate::cpu::logging::opcode_info;
 use crate::cpu::microops::MicroOp;
 use crate::cpu::registers::{Flags, Reg16, Reg8, Registers};
 use crate::interconnect::Interconnect;
@@ -60,7 +62,37 @@ impl Cpu {
         }
     }
 
-    pub fn step(&mut self) {}
+    pub fn step(&mut self) {
+        let pc_before_op = self.regs.pc;
+
+        let opcode = self.fetch8();
+
+        let micro_ops = if opcode == 0xCB {
+            let cb_opcode = self.fetch8();
+            //decode CB
+            self.cb_decode(opcode)
+        } else {
+            let (mnemonic, bytes, cycles) = opcode_info(opcode);
+
+            let mut instr_bytes = vec![opcode];
+            if bytes > 1 {
+                for i in 1..bytes {
+                    instr_bytes.push(self.inter.read_byte(pc_before_op + i as u16));
+                }
+            }
+
+            println!(
+                "PC: {:#06X} | Opcode: {:#04X} | Mnemonic: {:<10} | Bytes: {:?} | Cycles: {}",
+                pc_before_op, opcode, mnemonic, instr_bytes, cycles
+            );
+
+            self.decode(opcode)
+        };
+
+        for op in micro_ops {
+            self.execute_microop(op);
+        }
+    }
 
     fn fetch8(&mut self) -> u8 {
         let byte = self.inter.read_byte(self.regs.get16(Reg16::PC));
@@ -92,6 +124,13 @@ impl Cpu {
         self.regs.sp = self.regs.sp.wrapping_add(1);
 
         value
+    }
+
+    pub fn cb_decode(&mut self, opcode: u8) -> Vec<MicroOp> {
+        match opcode {
+            0x00 => vec![MicroOp::Nop],
+            _ => panic!("Unimplemented opcode: {:02X}", opcode),
+        }
     }
 
     pub fn decode(&mut self, opcode: u8) -> Vec<MicroOp> {
@@ -951,14 +990,12 @@ impl Cpu {
             MicroOp::LdReg8FromReg8 { dst, src } => {
                 let v = self.regs.get8(src);
                 self.regs.set8(dst, v);
-                self.cycles += 1;
             }
 
             MicroOp::LdReg8FromMem { dst, src } => {
                 let addr = self.regs.get16(src);
                 let value = self.inter.read_byte(addr);
                 self.regs.set8(dst, value);
-                self.cycles += 1;
             }
             MicroOp::LdReg8FromImm { dst } => {
                 let value = self.fetch8();

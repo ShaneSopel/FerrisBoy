@@ -102,10 +102,10 @@ pub enum MicroOp {
         dst: Reg8,
         src: Reg8,
     },
-    SubReg8Mem {
-        dst: Reg8,
-        src: Reg16,
-    },
+    // SubReg8Mem {
+    //     dst: Reg8,
+    //     src: Reg16,
+    // },
     SubReg8Imm {
         dst: Reg8,
         addr: u8,
@@ -247,6 +247,14 @@ pub enum MicroOp {
     SwapReg8 {
         dst: Reg8,
     },
+    RlRegHl,
+    RlcRegHl,
+    RrRegHl,
+    RrcRegHl,
+    SlaRegHl,
+    SraRegHl,
+    SrlRegHl,
+    SwapRegHl,
     AddImmToSP {
         imm: i8,
     },

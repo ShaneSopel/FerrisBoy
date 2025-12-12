@@ -128,7 +128,15 @@ impl Cpu {
 
     pub fn cb_decode(&mut self, opcode: u8) -> Vec<MicroOp> {
         match opcode {
-            0x00 => vec![MicroOp::Nop],
+            0x00 => vec![MicroOp::RlcReg8 { dst: (Reg8::B) }],
+            0x01 => vec![MicroOp::RlcReg8 { dst: (Reg8::C) }],
+            0x02 => vec![MicroOp::RlcReg8 { dst: (Reg8::D) }],
+            0x03 => vec![MicroOp::RlcReg8 { dst: (Reg8::E) }],
+            0x04 => vec![MicroOp::RlcReg8 { dst: (Reg8::H) }],
+            0x05 => vec![MicroOp::RlcReg8 { dst: (Reg8::L) }],
+            //0x06 Rlc Hl
+            0x07 => vec![MicroOp::RlcReg8 { dst: (Reg8::A) }],
+
             _ => panic!("Unimplemented opcode: {:02X}", opcode),
         }
     }
@@ -1256,7 +1264,7 @@ impl Cpu {
                 self.regs.set8(dst, result);
             }
 
-            MicroOp::SubReg8Mem { dst, src } => {
+            /*  MicroOp::SubReg8Mem { dst, src } => {
                 let mem = self.regs.get16(src);
                 let value = self.inter.read_byte(mem);
                 let a = self.regs.get8(dst);
@@ -1265,8 +1273,7 @@ impl Cpu {
                 let result = alu_out.result;
 
                 self.regs.set8(dst, result);
-            }
-
+            }*/
             MicroOp::SubReg8Imm { dst, addr } => {
                 let a = self.regs.get8(dst);
 
@@ -1758,20 +1765,226 @@ impl Cpu {
                 self.flags.set_flag('C', carry);
             }
 
-            MicroOp::RlReg8 { dst } => {}
-            MicroOp::RlcReg8 { dst } => {}
+            MicroOp::RlReg8 { dst } => {
+                let value = self.regs.get8(dst);
+                let c_flag = self.flags.get_flag('c');
 
-            MicroOp::RrReg8 { dst } => {}
+                let alu_out = self.alu.rl_byte(value, c_flag);
+                let result = alu_out.result;
 
-            MicroOp::RrcReg8 { dst } => {}
+                self.flags.set_flag('z', alu_out.z);
+                self.flags.set_flag('n', alu_out.n);
+                self.flags.set_flag('h', alu_out.h);
+                self.flags.set_flag('c', alu_out.c);
 
-            MicroOp::SlaReg8 { dst } => {}
+                self.regs.set8(dst, result);
+            }
 
-            MicroOp::SraReg8 { dst } => {}
+            MicroOp::RlcReg8 { dst } => {
+                let value = self.regs.get8(dst);
 
-            MicroOp::SrlReg8 { dst } => {}
+                let alu_out = self.alu.rlc_byte(value);
+                let result = alu_out.result;
 
-            MicroOp::SwapReg8 { dst } => {}
+                self.flags.set_flag('z', alu_out.z);
+                self.flags.set_flag('n', alu_out.n);
+                self.flags.set_flag('h', alu_out.h);
+                self.flags.set_flag('c', alu_out.c);
+
+                self.regs.set8(dst, result);
+            }
+
+            MicroOp::RrReg8 { dst } => {
+                let value = self.regs.get8(dst);
+                let c_flag = self.flags.get_flag('c');
+
+                let alu_out = self.alu.rr_byte(value, c_flag);
+                let result = alu_out.result;
+
+                self.flags.set_flag('z', alu_out.z);
+                self.flags.set_flag('n', alu_out.n);
+                self.flags.set_flag('h', alu_out.h);
+                self.flags.set_flag('c', alu_out.c);
+
+                self.regs.set8(dst, result);
+            }
+
+            MicroOp::RrcReg8 { dst } => {
+                let value = self.regs.get8(dst);
+
+                let alu_out = self.alu.rrc_byte(value);
+                let result = alu_out.result;
+
+                self.flags.set_flag('z', alu_out.z);
+                self.flags.set_flag('n', alu_out.n);
+                self.flags.set_flag('h', alu_out.h);
+                self.flags.set_flag('c', alu_out.c);
+
+                self.regs.set8(dst, result);
+            }
+
+            MicroOp::SlaReg8 { dst } => {
+                let value = self.regs.get8(dst);
+
+                let alu_out = self.alu.sla_byte(value);
+                let result = alu_out.result;
+
+                self.flags.set_flag('z', alu_out.z);
+                self.flags.set_flag('n', alu_out.n);
+                self.flags.set_flag('h', alu_out.h);
+                self.flags.set_flag('c', alu_out.c);
+
+                self.regs.set8(dst, result);
+            }
+
+            MicroOp::SraReg8 { dst } => {
+                let value = self.regs.get8(dst);
+
+                let alu_out = self.alu.sra_byte(value);
+                let result = alu_out.result;
+
+                self.flags.set_flag('z', alu_out.z);
+                self.flags.set_flag('n', alu_out.n);
+                self.flags.set_flag('h', alu_out.h);
+                self.flags.set_flag('c', alu_out.c);
+
+                self.regs.set8(dst, result);
+            }
+
+            MicroOp::SrlReg8 { dst } => {
+                let value = self.regs.get8(dst);
+
+                let alu_out = self.alu.srl_byte(value);
+                let result = alu_out.result;
+
+                self.flags.set_flag('z', alu_out.z);
+                self.flags.set_flag('n', alu_out.n);
+                self.flags.set_flag('h', alu_out.h);
+                self.flags.set_flag('c', alu_out.c);
+
+                self.regs.set8(dst, result);
+            }
+
+            MicroOp::SwapReg8 { dst } => {
+                let value = self.regs.get8(dst);
+
+                let alu_out = self.alu.swap_byte(value);
+                let result = alu_out.result;
+
+                self.flags.set_flag('z', alu_out.z);
+                self.flags.set_flag('n', alu_out.n);
+                self.flags.set_flag('h', alu_out.h);
+                self.flags.set_flag('c', alu_out.c);
+
+                self.regs.set8(dst, result);
+            }
+
+            MicroOp::RlRegHl {} => {
+                let addr = self.regs.get16(Reg16::HL);
+                let val = self.inter.read_byte(addr);
+                let c_flag = self.flags.get_flag('c');
+
+                let alu_out = self.alu.rl_byte(val, c_flag);
+                let result = alu_out.result;
+
+                self.flags.set_flag('z', alu_out.z);
+                self.flags.set_flag('n', alu_out.n);
+                self.flags.set_flag('h', alu_out.h);
+                self.flags.set_flag('c', alu_out.c);
+                self.inter.write_byte(addr, result);
+            }
+            MicroOp::RlcRegHl {} => {
+                let addr = self.regs.get16(Reg16::HL);
+                let val = self.inter.read_byte(addr);
+
+                let alu_out = self.alu.rlc_byte(val);
+                let result = alu_out.result;
+
+                self.flags.set_flag('z', alu_out.z);
+                self.flags.set_flag('n', alu_out.n);
+                self.flags.set_flag('h', alu_out.h);
+                self.flags.set_flag('c', alu_out.c);
+                self.inter.write_byte(addr, result);
+            }
+            MicroOp::RrRegHl {} => {
+                let addr = self.regs.get16(Reg16::HL);
+                let val = self.inter.read_byte(addr);
+                let c_flag = self.flags.get_flag('c');
+
+                let alu_out = self.alu.rr_byte(val, c_flag);
+                let result = alu_out.result;
+
+                self.flags.set_flag('z', alu_out.z);
+                self.flags.set_flag('n', alu_out.n);
+                self.flags.set_flag('h', alu_out.h);
+                self.flags.set_flag('c', alu_out.c);
+                self.inter.write_byte(addr, result);
+            }
+            MicroOp::RrcRegHl {} => {
+                let addr = self.regs.get16(Reg16::HL);
+                let val = self.inter.read_byte(addr);
+
+                let alu_out = self.alu.rrc_byte(val);
+                let result = alu_out.result;
+
+                self.flags.set_flag('z', alu_out.z);
+                self.flags.set_flag('n', alu_out.n);
+                self.flags.set_flag('h', alu_out.h);
+                self.flags.set_flag('c', alu_out.c);
+                self.inter.write_byte(addr, result);
+            }
+            MicroOp::SlaRegHl {} => {
+                let addr = self.regs.get16(Reg16::HL);
+                let val = self.inter.read_byte(addr);
+
+                let alu_out = self.alu.sla_byte(val);
+                let result = alu_out.result;
+
+                self.flags.set_flag('z', alu_out.z);
+                self.flags.set_flag('n', alu_out.n);
+                self.flags.set_flag('h', alu_out.h);
+                self.flags.set_flag('c', alu_out.c);
+                self.inter.write_byte(addr, result);
+            }
+            MicroOp::SraRegHl {} => {
+                let addr = self.regs.get16(Reg16::HL);
+                let val = self.inter.read_byte(addr);
+
+                let alu_out = self.alu.sra_byte(val);
+                let result = alu_out.result;
+
+                self.flags.set_flag('z', alu_out.z);
+                self.flags.set_flag('n', alu_out.n);
+                self.flags.set_flag('h', alu_out.h);
+                self.flags.set_flag('c', alu_out.c);
+                self.inter.write_byte(addr, result);
+            }
+            MicroOp::SrlRegHl {} => {
+                let addr = self.regs.get16(Reg16::HL);
+                let val = self.inter.read_byte(addr);
+
+                let alu_out = self.alu.srl_byte(val);
+                let result = alu_out.result;
+
+                self.flags.set_flag('z', alu_out.z);
+                self.flags.set_flag('n', alu_out.n);
+                self.flags.set_flag('h', alu_out.h);
+                self.flags.set_flag('c', alu_out.c);
+                self.inter.write_byte(addr, result);
+            }
+            MicroOp::SwapRegHl {} => {
+                let addr = self.regs.get16(Reg16::HL);
+                let val = self.inter.read_byte(addr);
+
+                let alu_out = self.alu.swap_byte(val);
+                let result = alu_out.result;
+
+                self.flags.set_flag('z', alu_out.z);
+                self.flags.set_flag('n', alu_out.n);
+                self.flags.set_flag('h', alu_out.h);
+                self.flags.set_flag('c', alu_out.c);
+                self.inter.write_byte(addr, result);
+            }
 
             MicroOp::AddImmToSP { imm } => {
                 let sp = self.regs.sp;

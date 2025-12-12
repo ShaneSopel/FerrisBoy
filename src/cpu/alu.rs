@@ -152,6 +152,112 @@ impl Alu {
         }
     }
 
+    pub fn rlc_byte(&mut self, v: u8) -> AluResult8 {
+        let carry = (v & 0x80) != 0;
+        let result = v.rotate_left(1);
+
+        AluResult8 {
+            result,
+            z: result == 0,
+            n: false,
+            h: false,
+            c: carry,
+        }
+    }
+
+    pub fn rrc_byte(&mut self, v: u8) -> AluResult8 {
+        let carry = (v & 0x01) != 0;
+        let result = v.rotate_right(1);
+
+        AluResult8 {
+            result,
+            z: result == 0,
+            n: false,
+            h: false,
+            c: carry,
+        }
+    }
+
+    pub fn rl_byte(&mut self, v: u8, cpu_flag: bool) -> AluResult8 {
+        let old_c = cpu_flag as u8;
+        let new_carry = (v & 0x80) != 0;
+        let result = (v << 1) | old_c;
+
+        AluResult8 {
+            result,
+            z: result == 0,
+            n: false,
+            h: false,
+            c: new_carry,
+        }
+    }
+
+    pub fn rr_byte(&mut self, v: u8, cpu_flag: bool) -> AluResult8 {
+        let old_c = cpu_flag as u8;
+        let new_carry = (v & 0x01) != 0;
+        let result = (v >> 1) | (old_c << 7);
+
+        AluResult8 {
+            result,
+            z: result == 0,
+            n: false,
+            h: false,
+            c: new_carry,
+        }
+    }
+
+    pub fn sla_byte(&mut self, v: u8) -> AluResult8 {
+        let carry = (v & 0x80) != 0;
+        let result = v << 1;
+
+        AluResult8 {
+            result,
+            z: result == 0,
+            n: false,
+            h: false,
+            c: carry,
+        }
+    }
+
+    pub fn sra_byte(&mut self, v: u8) -> AluResult8 {
+        let carry = (v & 0x01) != 0;
+        let msb = v & 0x80;
+        let result = (v >> 1) | msb;
+
+        AluResult8 {
+            result,
+            z: result == 0,
+            n: false,
+            h: false,
+            c: carry,
+        }
+    }
+
+    pub fn srl_byte(&mut self, v: u8) -> AluResult8 {
+        let carry = (v & 0x01) != 0;
+        let result = v >> 1;
+
+        AluResult8 {
+            result,
+            z: result == 0,
+            n: false,
+            h: false,
+            c: carry,
+        }
+    }
+
+    pub fn swap_byte(&mut self, v: u8) -> AluResult8 {
+        let result = (v << 4) | (v >> 4);
+
+        AluResult8 {
+            result,
+            z: result == 0,
+            n: false,
+            h: false,
+            c: false,
+        }
+    }
+
     /*pub fn rst(&self, cpu: &mut Cpu, addr: u16)
     {
         let pc = cpu.get_register_16("PC");

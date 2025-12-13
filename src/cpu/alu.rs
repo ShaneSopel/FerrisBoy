@@ -18,9 +18,7 @@ pub struct AluResult16 {
 
 impl Alu {
     pub fn new() -> Self {
-        let alu = Self {};
-
-        alu
+        Self {}
     }
 
     pub fn add_8bit(&self, a: u8, b: u8) -> AluResult8 {
@@ -165,7 +163,7 @@ impl Alu {
         }
     }
 
-    pub fn rrc_byte(&mut self, v: u8) -> AluResult8 {
+   /*  pub fn rrc_byte(&mut self, v: u8) -> AluResult8 {
         let carry = (v & 0x01) != 0;
         let result = v.rotate_right(1);
 
@@ -247,7 +245,8 @@ impl Alu {
     }
 
     pub fn swap_byte(&mut self, v: u8) -> AluResult8 {
-        let result = (v << 4) | (v >> 4);
+        //let result = (v << 4) | (v >> 4);
+        let result = v.rotate_right(4);
 
         AluResult8 {
             result,
@@ -256,7 +255,7 @@ impl Alu {
             h: false,
             c: false,
         }
-    }
+    }*/
 
     /*pub fn rst(&self, cpu: &mut Cpu, addr: u16)
     {

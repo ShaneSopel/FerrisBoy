@@ -204,12 +204,12 @@ pub enum MicroOp {
         flag: char,
         expected: bool,
     },
-    Return {},
+    Return,
     ReturnIf {
         flag: char,
         expected: bool,
     },
-    Reti {},
+    Reti,
     Restart {
         vector: u16,
     },
@@ -223,13 +223,13 @@ pub enum MicroOp {
     Ccf,
     Scf,
     Daa,
-    RlReg8 {
-        dst: Reg8,
-    },
+   // RlReg8 {
+   //     dst: Reg8,
+   // },
     RlcReg8 {
         dst: Reg8,
     },
-    RrReg8 {
+    /*RrReg8 {
         dst: Reg8,
     },
     RrcReg8 {
@@ -254,12 +254,12 @@ pub enum MicroOp {
     SlaRegHl,
     SraRegHl,
     SrlRegHl,
-    SwapRegHl,
+    SwapRegHl,*/
     AddImmToSP {
         imm: i8,
     },
     LdHLSPPlusR8,
-    Illegal {
-        opcode: u8,
-    },
+   // Illegal {
+   //     opcode: u8,
+   // },
 }

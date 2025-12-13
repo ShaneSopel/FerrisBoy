@@ -1,7 +1,6 @@
 /// logging.rs
 /// This module provides Game Boy opcode mnemonic, length, and cycle information
 /// for debug printing in the CPU step function.
-
 pub fn opcode_info(opcode: u8) -> (&'static str, u8, u8) {
     match opcode {
         0x00 => ("NOP", 1, 4),
@@ -254,7 +253,7 @@ pub fn opcode_info(opcode: u8) -> (&'static str, u8, u8) {
     }
 }
 
-pub fn cb_opcode_info(opcode: u8) -> (&'static str, u8, u8) {
+/*pub fn cb_opcode_info(opcode: u8) -> (&'static str, u8, u8) {
     match opcode {
         0x00 => ("RLC B", 2, 8),
         0x01 => ("RLC C", 2, 8),
@@ -270,4 +269,4 @@ pub fn cb_opcode_info(opcode: u8) -> (&'static str, u8, u8) {
         // add more CB-prefixed opcodes as needed
         _ => ("CB_UNKNOWN", 2, 0),
     }
-}
+}*/

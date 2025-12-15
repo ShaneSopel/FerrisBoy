@@ -86,7 +86,7 @@ pub enum Reg8 {
     C,
     D,
     E,
-   // F,
+    // F,
     H,
     L,
 }

@@ -981,7 +981,7 @@ impl Cpu {
                 }]
             }
             0xFF => vec![MicroOp::Restart { vector: (0x0038) }],
-            _ => panic!("Unimplemented opcode: {:02X}", opcode ),
+            _ => panic!("Unimplemented opcode: {:02X}", opcode),
         }
     }
 
@@ -1777,7 +1777,6 @@ impl Cpu {
 
                 self.regs.set8(dst, result);
             }*/
-
             MicroOp::RlcReg8 { dst } => {
                 let value = self.regs.get8(dst);
 
@@ -1792,7 +1791,7 @@ impl Cpu {
                 self.regs.set8(dst, result);
             }
 
-           /*  MicroOp::RrReg8 { dst } => {
+            /*  MicroOp::RrReg8 { dst } => {
                 let value = self.regs.get8(dst);
                 let c_flag = self.flags.get_flag('c');
 
@@ -1983,7 +1982,6 @@ impl Cpu {
                 self.flags.set_flag('c', alu_out.c);
                 self.inter.write_byte(addr, result);
             }*/
-
             MicroOp::AddImmToSP { imm } => {
                 let sp = self.regs.sp;
                 let result = sp.wrapping_add(imm as i16 as u16);
@@ -2017,12 +2015,13 @@ impl Cpu {
                 let carry = (sp_lo as u16 + imm8 as u16) > 0xFF;
                 self.flags.set_flag('h', half_carry);
                 self.flags.set_flag('c', carry);
-            }
-
-            //Never used might delete
-            //MicroOp::Illegal { opcode } => {
-            //    println!("illegal opcode: {}", opcode);
-            //}
+            } //Never used might delete
+              //MicroOp::Illegal { opcode } => {
+              //    println!("illegal opcode: {}", opcode);
+              //}
         }
     }
 }
+
+#[cfg(test)]
+mod tests;

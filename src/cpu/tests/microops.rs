@@ -1236,8 +1236,8 @@ fn call_absolute_pushes_pc_and_jumps() {
     assert_eq!(cpu.regs.get16(Reg16::PC), 0x2000);
 
     let sp = cpu.regs.get16(Reg16::SP);
-    assert_eq!(cpu.inter.read_byte(sp), 0x00); 
-    assert_eq!(cpu.inter.read_byte(sp + 1), 0x10); 
+    assert_eq!(cpu.inter.read_byte(sp), 0x00);
+    assert_eq!(cpu.inter.read_byte(sp + 1), 0x10);
 }
 
 #[test]
@@ -1270,7 +1270,7 @@ fn return_sets_pc_from_stack() {
     cpu.regs.set16(Reg16::SP, 0xFFFC);
 
     cpu.inter.write_byte(0xFFFC, 0x34);
-    cpu.inter.write_byte(0xFFFD, 0x12); 
+    cpu.inter.write_byte(0xFFFD, 0x12);
 
     cpu.execute_microop(MicroOp::Return);
 
@@ -1283,8 +1283,8 @@ fn return_if_conditional_only_pops_if_flag_matches() {
     let mut cpu = setup_cpu();
     cpu.regs.set16(Reg16::SP, 0xFFFC);
 
-    cpu.inter.write_byte(0xFFFC, 0x34); 
-    cpu.inter.write_byte(0xFFFD, 0x12); 
+    cpu.inter.write_byte(0xFFFC, 0x34);
+    cpu.inter.write_byte(0xFFFD, 0x12);
 
     cpu.flags.set_flag('z', true);
     cpu.execute_microop(MicroOp::ReturnIf {
@@ -1307,8 +1307,8 @@ fn reti_behaves_like_return_and_sets_ime() {
     let mut cpu = setup_cpu();
     cpu.regs.set16(Reg16::SP, 0xFFFC);
 
-    cpu.inter.write_byte(0xFFFC, 0x34); 
-    cpu.inter.write_byte(0xFFFD, 0x12); 
+    cpu.inter.write_byte(0xFFFC, 0x34);
+    cpu.inter.write_byte(0xFFFD, 0x12);
 
     cpu.execute_microop(MicroOp::Reti);
 
@@ -1327,10 +1327,9 @@ fn restart_pushes_pc_and_jumps_to_vector() {
     assert_eq!(cpu.regs.get16(Reg16::PC), 0x0008);
 
     let sp = cpu.regs.get16(Reg16::SP);
-    assert_eq!(cpu.inter.read_byte(sp), 0x00); 
-    assert_eq!(cpu.inter.read_byte(sp + 1), 0x10); 
+    assert_eq!(cpu.inter.read_byte(sp), 0x00);
+    assert_eq!(cpu.inter.read_byte(sp + 1), 0x10);
 }
-
 
 #[test]
 fn rlc_reg8() {

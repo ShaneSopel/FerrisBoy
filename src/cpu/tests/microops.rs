@@ -1438,7 +1438,7 @@ fn scf_sets_carry_flag() {
 #[test]
 fn daa_adjusts_a_for_bcd() {
     let mut cpu = setup_cpu();
-    cpu.regs.set8(Reg8::A, 0x45); 
+    cpu.regs.set8(Reg8::A, 0x45);
     cpu.flags.n = false;
     cpu.flags.h = false;
     cpu.flags.c = false;
@@ -1447,7 +1447,6 @@ fn daa_adjusts_a_for_bcd() {
 
     assert!(cpu.regs.get8(Reg8::A) <= 0x99);
 }
-
 
 #[test]
 fn rlc_reg8() {

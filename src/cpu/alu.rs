@@ -136,7 +136,7 @@ impl Alu {
     }
 
     pub fn cp_8bit(&self, a: u8, b: u8) -> AluResult8 {
-        let result = a - b;
+        let result = a.wrapping_sub(b);
 
         let half_borrow = (a & 0x0F) < (b & 0x0F);
         let carry = a < b;
@@ -163,7 +163,7 @@ impl Alu {
         }
     }
 
-   /*  pub fn rrc_byte(&mut self, v: u8) -> AluResult8 {
+    /*  pub fn rrc_byte(&mut self, v: u8) -> AluResult8 {
         let carry = (v & 0x01) != 0;
         let result = v.rotate_right(1);
 

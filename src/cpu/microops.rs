@@ -223,9 +223,9 @@ pub enum MicroOp {
     Ccf,
     Scf,
     Daa,
-   // RlReg8 {
-   //     dst: Reg8,
-   // },
+    // RlReg8 {
+    //     dst: Reg8,
+    // },
     RlcReg8 {
         dst: Reg8,
     },
@@ -259,7 +259,7 @@ pub enum MicroOp {
         imm: i8,
     },
     LdHLSPPlusR8,
-   // Illegal {
-   //     opcode: u8,
-   // },
+    // Illegal {
+    //     opcode: u8,
+    // },
 }

@@ -125,6 +125,20 @@ impl Cpu {
         value
     }
 
+    fn push_16bit(&mut self, value: u16) {
+        let hi = (value >> 8) as u8;
+        let lo = (value & 0xFF) as u8;
+
+        self.push(hi);
+        self.push(lo);
+    }
+
+    fn pop_16bit(&mut self) -> u16 {
+        let lo = self.pop() as u16;
+        let hi = self.pop() as u16;
+        (hi << 8) | lo
+    }
+
     pub fn cb_decode(&mut self, opcode: u8) -> Vec<MicroOp> {
         match opcode {
             0x00 => vec![MicroOp::RlcReg8 { dst: (Reg8::B) }],
@@ -981,7 +995,7 @@ impl Cpu {
                 }]
             }
             0xFF => vec![MicroOp::Restart { vector: (0x0038) }],
-            _ => panic!("Unimplemented opcode: {:02X}", opcode ),
+            _ => panic!("Unimplemented opcode: {:02X}", opcode),
         }
     }
 
@@ -1307,9 +1321,9 @@ impl Cpu {
                 let mem = self.regs.get16(src);
                 let value = self.inter.read_byte(mem);
                 let a = self.regs.get8(dst);
-                let carry = self.flags.get_flag('c') as u8;
+                let carry = self.flags.get_flag('c');
 
-                let alu_out = self.alu.sub_8bit(a, value + carry);
+                let alu_out = self.alu.sbc_8bit(carry, a, value);
                 let result = alu_out.result;
 
                 self.flags.set_flag('z', alu_out.z);
@@ -1322,9 +1336,9 @@ impl Cpu {
 
             MicroOp::SubCarry8Imm { dst, addr } => {
                 let a = self.regs.get8(dst);
-                let carry = if self.flags.get_flag('C') { 1 } else { 0 };
+                let carry = self.flags.get_flag('c');
 
-                let alu_out = self.alu.add_8bit(a, addr + carry);
+                let alu_out = self.alu.sbc_8bit(carry, a, addr);
                 let result = alu_out.result;
 
                 self.flags.set_flag('z', alu_out.z);
@@ -1506,15 +1520,12 @@ impl Cpu {
             }
 
             MicroOp::PushReg16 { reg } => {
-                let val = self.regs.get16(reg);
-                let hi = (val >> 8) as u8;
-                let lo = val as u8;
+                let value = self.regs.get16(reg);
+                let sp = self.regs.get16(Reg16::SP);
 
-                self.regs.sp = self.regs.sp.wrapping_sub(1);
-                self.inter.write_byte(self.regs.sp, hi);
-
-                self.regs.sp = self.regs.sp.wrapping_sub(1);
-                self.inter.write_byte(self.regs.sp, lo);
+                self.regs.set16(Reg16::SP, sp - 2);
+                self.inter.write_byte(sp - 2, (value >> 8) as u8);
+                self.inter.write_byte(sp - 1, (value & 0xFF) as u8);
             }
 
             MicroOp::PopReg16 { reg } => {
@@ -1569,13 +1580,7 @@ impl Cpu {
             }
 
             MicroOp::CallAbsolute { addr } => {
-                let pc = self.regs.pc;
-                self.regs.sp = self.regs.sp.wrapping_sub(1);
-                self.inter
-                    .write_byte(self.regs.sp, ((pc >> 8) & 0xFF) as u8);
-                self.regs.sp = self.regs.sp.wrapping_sub(1);
-                self.inter.write_byte(self.regs.sp, (pc & 0xFF) as u8);
-
+                self.push_16bit(self.regs.pc);
                 self.regs.pc = addr;
             }
 
@@ -1585,61 +1590,29 @@ impl Cpu {
                 expected,
             } => {
                 if self.flags.get_flag(flag) == expected {
-                    // Push current PC onto stack
-                    let pc = self.regs.pc;
-                    self.regs.sp = self.regs.sp.wrapping_sub(1);
-                    self.inter
-                        .write_byte(self.regs.sp, ((pc >> 8) & 0xFF) as u8);
-                    self.regs.sp = self.regs.sp.wrapping_sub(1);
-                    self.inter.write_byte(self.regs.sp, (pc & 0xFF) as u8);
-
-                    // Jump to target
+                    self.push_16bit(self.regs.pc);
                     self.regs.pc = addr;
-                } else {
-                    // No jump; nothing else to do
                 }
             }
 
             MicroOp::Return => {
-                let lo = self.inter.read_byte(self.regs.sp) as u16;
-                self.regs.sp = self.regs.sp.wrapping_add(1);
-                let hi = self.inter.read_byte(self.regs.sp) as u16;
-                self.regs.sp = self.regs.sp.wrapping_add(1);
-
-                self.regs.pc = (hi << 8) | lo;
+                self.regs.pc = self.pop_16bit();
             }
 
             MicroOp::ReturnIf { flag, expected } => {
                 if self.flags.get_flag(flag) == expected {
-                    // Pop 16-bit address from stack (little-endian)
-                    let lo = self.inter.read_byte(self.regs.sp) as u16;
-                    self.regs.sp = self.regs.sp.wrapping_add(1);
-                    let hi = self.inter.read_byte(self.regs.sp) as u16;
-                    self.regs.sp = self.regs.sp.wrapping_add(1);
-
-                    // Set PC to popped address
-                    self.regs.pc = (hi << 8) | lo;
+                    self.regs.pc = self.pop_16bit();
                 }
             }
 
             MicroOp::Reti => {
-                let lo = self.pop();
-                let hi = self.pop();
-                self.regs.pc = ((hi as u16) << 8) | (lo as u16);
-
+                self.regs.pc = self.pop_16bit();
                 self.interrupt = true;
             }
 
             MicroOp::Restart { vector } => {
-                let pc = self.regs.get16(Reg16::PC);
-
-                let hi = ((pc >> 8) & 0xFF) as u8;
-                let lo = (pc & 0xFF) as u8;
-
-                self.push(hi);
-                self.push(lo);
-
-                self.regs.set16(Reg16::PC, vector);
+                self.push_16bit(self.regs.pc);
+                self.regs.pc = vector;
             }
 
             MicroOp::Rlca => {
@@ -1703,12 +1676,13 @@ impl Cpu {
 
             MicroOp::Ei => {
                 self.interrupt_enable_next = true;
+                self.interrupt = true;
             }
 
             MicroOp::Cpl => {
                 self.regs.a = !self.regs.a;
 
-                self.flags.set_flag('C', true);
+                self.flags.set_flag('N', true);
                 self.flags.set_flag('H', true);
             }
 
@@ -1777,7 +1751,6 @@ impl Cpu {
 
                 self.regs.set8(dst, result);
             }*/
-
             MicroOp::RlcReg8 { dst } => {
                 let value = self.regs.get8(dst);
 
@@ -1792,7 +1765,7 @@ impl Cpu {
                 self.regs.set8(dst, result);
             }
 
-           /*  MicroOp::RrReg8 { dst } => {
+            /*  MicroOp::RrReg8 { dst } => {
                 let value = self.regs.get8(dst);
                 let c_flag = self.flags.get_flag('c');
 
@@ -1983,7 +1956,6 @@ impl Cpu {
                 self.flags.set_flag('c', alu_out.c);
                 self.inter.write_byte(addr, result);
             }*/
-
             MicroOp::AddImmToSP { imm } => {
                 let sp = self.regs.sp;
                 let result = sp.wrapping_add(imm as i16 as u16);
@@ -2017,12 +1989,13 @@ impl Cpu {
                 let carry = (sp_lo as u16 + imm8 as u16) > 0xFF;
                 self.flags.set_flag('h', half_carry);
                 self.flags.set_flag('c', carry);
-            }
-
-            //Never used might delete
-            //MicroOp::Illegal { opcode } => {
-            //    println!("illegal opcode: {}", opcode);
-            //}
+            } //Never used might delete
+              //MicroOp::Illegal { opcode } => {
+              //    println!("illegal opcode: {}", opcode);
+              //}
         }
     }
 }
+
+#[cfg(test)]
+mod tests;

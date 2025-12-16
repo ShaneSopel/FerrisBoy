@@ -1676,12 +1676,13 @@ impl Cpu {
 
             MicroOp::Ei => {
                 self.interrupt_enable_next = true;
+                self.interrupt = true;
             }
 
             MicroOp::Cpl => {
                 self.regs.a = !self.regs.a;
 
-                self.flags.set_flag('C', true);
+                self.flags.set_flag('N', true);
                 self.flags.set_flag('H', true);
             }
 

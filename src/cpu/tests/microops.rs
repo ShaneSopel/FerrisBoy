@@ -1332,6 +1332,124 @@ fn restart_pushes_pc_and_jumps_to_vector() {
 }
 
 #[test]
+fn rlca_rotates_a_left_carry() {
+    let mut cpu = setup_cpu();
+    cpu.regs.set8(Reg8::A, 0b1000_0001);
+
+    cpu.execute_microop(MicroOp::Rlca);
+
+    assert_eq!(cpu.regs.get8(Reg8::A), 0b0000_0011);
+    assert!(cpu.flags.c);
+    assert!(!cpu.flags.z);
+}
+
+#[test]
+fn rrca_rotates_a_right_carry() {
+    let mut cpu = setup_cpu();
+    cpu.regs.set8(Reg8::A, 0b0000_0001);
+
+    cpu.execute_microop(MicroOp::Rrca);
+
+    assert_eq!(cpu.regs.get8(Reg8::A), 0b1000_0000);
+    assert!(cpu.flags.c);
+    assert!(!cpu.flags.z);
+}
+
+#[test]
+fn rla_rotates_a_left_through_carry() {
+    let mut cpu = setup_cpu();
+    cpu.regs.set8(Reg8::A, 0b1000_0000);
+    cpu.flags.c = false;
+
+    cpu.execute_microop(MicroOp::Rla);
+
+    assert_eq!(cpu.regs.get8(Reg8::A), 0b0000_0000);
+    assert!(cpu.flags.c);
+}
+
+#[test]
+fn rra_rotates_a_right_through_carry() {
+    let mut cpu = setup_cpu();
+    cpu.regs.set8(Reg8::A, 0b0000_0001);
+    cpu.flags.c = true;
+
+    cpu.execute_microop(MicroOp::Rra);
+
+    assert_eq!(cpu.regs.get8(Reg8::A), 0b1000_0000);
+    assert!(cpu.flags.c);
+}
+
+#[test]
+fn di_disables_interrupts() {
+    let mut cpu = setup_cpu();
+    cpu.interrupt = true;
+
+    cpu.execute_microop(MicroOp::Di);
+
+    assert!(!cpu.interrupt);
+}
+
+#[test]
+fn ei_enables_interrupts() {
+    let mut cpu = setup_cpu();
+    cpu.interrupt = false;
+
+    cpu.execute_microop(MicroOp::Ei);
+
+    assert!(cpu.interrupt);
+}
+
+#[test]
+fn cpl_complements_a() {
+    let mut cpu = setup_cpu();
+    cpu.regs.set8(Reg8::A, 0b1010_1010);
+
+    cpu.execute_microop(MicroOp::Cpl);
+
+    assert_eq!(cpu.regs.get8(Reg8::A), 0b0101_0101);
+    assert!(cpu.flags.n);
+    assert!(cpu.flags.h);
+}
+
+#[test]
+fn ccf_complements_carry_flag() {
+    let mut cpu = setup_cpu();
+    cpu.flags.c = false;
+
+    cpu.execute_microop(MicroOp::Ccf);
+
+    assert!(cpu.flags.c);
+    assert!(!cpu.flags.n);
+    assert!(!cpu.flags.h);
+}
+
+#[test]
+fn scf_sets_carry_flag() {
+    let mut cpu = setup_cpu();
+    cpu.flags.c = false;
+
+    cpu.execute_microop(MicroOp::Scf);
+
+    assert!(cpu.flags.c);
+    assert!(!cpu.flags.n);
+    assert!(!cpu.flags.h);
+}
+
+#[test]
+fn daa_adjusts_a_for_bcd() {
+    let mut cpu = setup_cpu();
+    cpu.regs.set8(Reg8::A, 0x45); 
+    cpu.flags.n = false;
+    cpu.flags.h = false;
+    cpu.flags.c = false;
+
+    cpu.execute_microop(MicroOp::Daa);
+
+    assert!(cpu.regs.get8(Reg8::A) <= 0x99);
+}
+
+
+#[test]
 fn rlc_reg8() {
     let mut cpu = setup_cpu();
 

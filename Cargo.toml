@@ -3,7 +3,8 @@ name = "FerrisBoy"
 version = "0.1.0"
 edition = "2021"
 
-[dependencies]
-sdl2 = "0.37"
+[target.'cfg(target_os = "macos")'.dependencies]
+sdl2 = { version = "0.37", features = ["use-pkgconfig"] }
 
-
+[target.'cfg(not(target_os = "macos"))'.dependencies]
+sdl2 = { version = "0.37" }

@@ -163,7 +163,7 @@ impl Alu {
         }
     }
 
-    /*  pub fn rrc_byte(&mut self, v: u8) -> AluResult8 {
+    pub fn rrc_byte(&mut self, v: u8) -> AluResult8 {
         let carry = (v & 0x01) != 0;
         let result = v.rotate_right(1);
 
@@ -255,7 +255,26 @@ impl Alu {
             h: false,
             c: false,
         }
-    }*/
+    }
+
+    pub fn bit_byte(&self, val: u8, bit: u8) -> AluResult8 {
+        let mask = 1 << bit;
+        AluResult8 {
+            result: val, // unchanged
+            z: (val & mask) == 0,
+            n: false,
+            h: true,
+            c: false, // ignored by caller
+        }
+    }
+
+    pub fn res_byte(&self, val: u8, bit: u8) -> u8 {
+        val & !(1 << bit)
+    }
+
+    pub fn set_byte(&self, val: u8, bit: u8) -> u8 {
+        val | (1 << bit)
+    }
 
     /*pub fn rst(&self, cpu: &mut Cpu, addr: u16)
     {

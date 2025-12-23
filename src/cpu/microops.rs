@@ -223,13 +223,13 @@ pub enum MicroOp {
     Ccf,
     Scf,
     Daa,
-    // RlReg8 {
-    //     dst: Reg8,
-    // },
+    RlReg8 {
+        dst: Reg8,
+    },
     RlcReg8 {
         dst: Reg8,
     },
-    /*RrReg8 {
+    RrReg8 {
         dst: Reg8,
     },
     RrcReg8 {
@@ -254,9 +254,32 @@ pub enum MicroOp {
     SlaRegHl,
     SraRegHl,
     SrlRegHl,
-    SwapRegHl,*/
+    SwapRegHl,
     AddImmToSP {
         imm: i8,
+    },
+    BitReg8 {
+        bit: u8,
+        reg: Reg8,
+    },
+    BitRegHl {
+        bit: u8,
+    },
+
+    ResReg8 {
+        bit: u8,
+        reg: Reg8,
+    },
+    ResRegHl {
+        bit: u8,
+    },
+
+    SetReg8 {
+        bit: u8,
+        reg: Reg8,
+    },
+    SetRegHl {
+        bit: u8,
     },
     LdHLSPPlusR8,
     // Illegal {

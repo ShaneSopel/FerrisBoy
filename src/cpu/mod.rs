@@ -981,7 +981,7 @@ impl Cpu {
                 offset: (8),
                 flag: ('z'),
                 expected: (false),
-            }],2),//this is a problem
+            }],2),
             0x21 => (vec![MicroOp::LdReg16FromMem {
                 dst: Reg16::HL,
                 src: Reg16::PC,
@@ -996,7 +996,7 @@ impl Cpu {
                 offset: (8),
                 flag: ('z'),
                 expected: (true),
-            }],2), //this is a problem 
+            }],2),
             0x29 => (vec![MicroOp::AddReg16 {
                 dst: (Reg16::HL),
                 src: (Reg16::HL),
@@ -1011,7 +1011,7 @@ impl Cpu {
                 offset: (8),
                 flag: ('c'),
                 expected: (false),
-            }],2),//this is a problem 
+            }],2),
             0x31 => (vec![MicroOp::LdReg16FromMem {
                 dst: Reg16::SP,
                 src: Reg16::PC,
@@ -1026,7 +1026,7 @@ impl Cpu {
                 offset: (8),
                 flag: ('c'),
                 expected: (true),
-            }],2),//this is a problem
+            }],2),
             0x39 => (vec![MicroOp::AddReg16 {
                 dst: (Reg16::HL),
                 src: (Reg16::SP),
@@ -1572,7 +1572,7 @@ impl Cpu {
             0xC0 => (vec![MicroOp::ReturnIf {
                 flag: ('f'),
                 expected: (false),
-            }],1),//this is a problem 
+            }],2),
             0xC1 => (vec![MicroOp::PopReg16 { reg: (Reg16::BC) }],3),
             0xC2 => ({
                 let addr = self.fetch16();
@@ -1581,7 +1581,7 @@ impl Cpu {
                     flag: ('z'),
                     expected: (false),
                 }]
-            }, 3), // problem 
+            }, 3), 
             0xC3 => ({
                 let addr = self.fetch16();
                 vec![MicroOp::JumpAbsolute { addr: (addr) }]
@@ -2323,6 +2323,8 @@ impl Cpu {
 
                 if taken {
                     self.regs.set16(Reg16::PC, addr);
+
+                    self.cycles += 1;
                 }
 
                 //taken
@@ -2341,6 +2343,8 @@ impl Cpu {
                 if self.flags.get_flag(flag) == expected {
                     let new_pc = self.regs.pc.wrapping_add(offset as u16);
                     self.regs.pc = new_pc;
+
+                    self.cycles += 1;
                 }
             }
 
@@ -2362,6 +2366,8 @@ impl Cpu {
                 if self.flags.get_flag(flag) == expected {
                     self.push_16bit(self.regs.pc);
                     self.regs.pc = addr;
+
+                    self.cycles += 3;
                 }
             }
 
@@ -2372,6 +2378,8 @@ impl Cpu {
             MicroOp::ReturnIf { flag, expected } => {
                 if self.flags.get_flag(flag) == expected {
                     self.regs.pc = self.pop_16bit();
+
+                    self.cycles += 3;
                 }
             }
 

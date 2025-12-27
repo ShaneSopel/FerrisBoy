@@ -58,7 +58,9 @@ pub enum MicroOp {
     LdMemFromImm8 {
         addr: Reg16,
     },
-    LdReg8FromMemImm16 { dst: Reg8 },
+    LdReg8FromMemImm16 {
+        dst: Reg8,
+    },
     IncReg8 {
         reg: Reg8,
     },

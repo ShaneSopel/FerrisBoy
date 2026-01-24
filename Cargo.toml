@@ -8,3 +8,6 @@ sdl2 = { version = "0.37", features = ["use-pkgconfig"] }
 
 [target.'cfg(not(target_os = "macos"))'.dependencies]
 sdl2 = { version = "0.37" }
+
+[dependencies]
+bytemuck = "1.24.0"

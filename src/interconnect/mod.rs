@@ -11,6 +11,7 @@
 //0xFF80 - 0xFFFE	High RAM (HRAM) (zero page)
 //FFFF	FFFF	Interrupt Enable register (IE)
 
+#[derive(Debug, Clone)]
 pub struct Interconnect {
     pub rom: [u8; 0x8000],
     pub vram: [u8; 0x2000],
@@ -77,16 +78,4 @@ impl Interconnect {
             _ => (),
         }
     }
-
-    // pub fn fetch_byte(&self, mem_addr: u16) -> u8
-    // {
-
-    //     return 0;
-
-    // }
-
-    // pub fn store_byte(&mut self, mem_addr: u16, val: u8)
-    // {
-
-    // }
 }

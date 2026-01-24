@@ -3,10 +3,14 @@ extern crate sdl2;
 mod cart;
 mod cpu;
 mod interconnect;
+mod ppu;
 
 use std::io::Result;
+//use sdl2::event::Event;
+//use sdl2::keyboard::Keycode;
 
 use crate::cart::Cart;
+//use crate::ppu::{Ppu, init_sdl};
 
 fn main() -> Result<()> {
     let mut cart = cart::Cart::new();
@@ -34,10 +38,47 @@ fn main() -> Result<()> {
     }
 
     let mut cpu = cpu::Cpu::new(inter);
+    let mut ppu = ppu::Ppu::new(cpu.inter.clone());
 
-    for _ in 0..100 {
+    let sdl_context = sdl2::init().unwrap();
+    let video_subsystem = sdl_context.video().unwrap();
+    let window = video_subsystem
+        .window("FerrisBoy", 160 * 4, 144 * 4)
+        .position_centered()
+        .build()
+        .unwrap();
+    let mut canvas = window.into_canvas().build().unwrap();
+    let mut event_pump = sdl_context.event_pump().unwrap();
+
+    let mut last_cpu_cycles = cpu.cycles;
+
+    loop {
+        for event in event_pump.poll_iter() {
+            use sdl2::event::Event;
+            use sdl2::keyboard::Keycode;
+            if matches!(
+                event,
+                Event::Quit { .. }
+                    | Event::KeyDown {
+                        keycode: Some(Keycode::Escape),
+                        ..
+                    }
+            ) {
+                break;
+            }
+        }
+
+        // Step CPU
         cpu.step();
-    }
 
-    Ok(())
+        // Calculate cycles since last CPU step
+        let delta_cycles = cpu.cycles - last_cpu_cycles;
+        last_cpu_cycles = cpu.cycles;
+
+        // Step PPU
+        ppu.step(delta_cycles * 4); // GB PPU is 4x CPU cycles
+
+        // Draw framebuffer
+        ppu.draw(&mut canvas);
+    }
 }

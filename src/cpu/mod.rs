@@ -21,9 +21,9 @@ pub struct Cpu {
     interrupt_enable_next: bool,
 
     //halted: bool,
-    inter: Interconnect,
+    pub inter: Interconnect,
 
-    cycles: u64,
+    pub cycles: u64,
 }
 
 impl Cpu {

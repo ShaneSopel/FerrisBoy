@@ -5,7 +5,7 @@ mod cpu;
 mod interconnect;
 mod ppu;
 
-use std::io::Result;
+use std::{env, io::Result};
 //use sdl2::event::Event;
 //use sdl2::keyboard::Keycode;
 
@@ -13,9 +13,10 @@ use crate::cart::Cart;
 //use crate::ppu::{Ppu, init_sdl};
 
 fn main() -> Result<()> {
+    let args: Vec<String> = env::args().collect();
     let mut cart = cart::Cart::new();
 
-    cart.filename = "/home/shanesopel/rust/FerrisBoy/roms/dmg-acid2.gb".to_string();
+    cart.filename = args[1].clone();
     cart.cart_load()?;
 
     let inter = interconnect::Interconnect::new(cart.rom_data);
@@ -52,7 +53,7 @@ fn main() -> Result<()> {
 
     let mut last_cpu_cycles = cpu.cycles;
 
-    loop {
+    'outer: loop {
         for event in event_pump.poll_iter() {
             use sdl2::event::Event;
             use sdl2::keyboard::Keycode;
@@ -64,7 +65,7 @@ fn main() -> Result<()> {
                         ..
                     }
             ) {
-                break;
+                break 'outer;
             }
         }
 
@@ -81,4 +82,6 @@ fn main() -> Result<()> {
         // Draw framebuffer
         ppu.draw(&mut canvas);
     }
+
+    Ok(())
 }

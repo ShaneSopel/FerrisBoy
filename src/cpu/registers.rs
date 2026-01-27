@@ -36,10 +36,10 @@ pub struct Flags {
 impl Flags {
     pub fn new() -> Self {
         Self {
-            z: false,
+            z: true,
             n: false,
-            h: false,
-            c: false,
+            h: true,
+            c: true,
         }
     }
 
@@ -78,8 +78,7 @@ impl Flags {
         }
     }
 }
-
-#[derive(Copy, Clone)]
+#[derive(Debug, Copy, Clone)]
 pub enum Reg8 {
     A,
     B,
@@ -90,8 +89,7 @@ pub enum Reg8 {
     H,
     L,
 }
-
-#[derive(Copy, Clone)]
+#[derive(Debug, Copy, Clone)]
 pub enum Reg16 {
     AF,
     BC,

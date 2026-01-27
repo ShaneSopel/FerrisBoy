@@ -10,7 +10,7 @@ use crate::cpu::registers::{Flags, Reg16, Reg8, Registers};
 use crate::interconnect::Interconnect;
 
 pub struct Cpu {
-    regs: Registers,
+    pub regs: Registers,
 
     flags: Flags,
 
@@ -30,15 +30,15 @@ impl Cpu {
     pub fn new(inter: Interconnect) -> Cpu {
         let regs = Registers {
             pc: 0x100,
-            sp: 0,
-            a: 0,
-            b: 0,
+            sp: 0xFFFE,
+            a: 0x01,
+            b: 0x00,
             f: Flags::new(),
-            c: 0,
-            d: 0,
-            e: 0,
-            h: 0,
-            l: 0,
+            c: 0x13,
+            d: 0x00,
+            e: 0xD8,
+            h: 0x01,
+            l: 0x4D,
             // ie: 0,
             // ir: 0,
         };
@@ -61,7 +61,7 @@ impl Cpu {
         }
     }
 
-    pub fn step(&mut self) {
+    pub fn step(&mut self) -> u64 {
         let pc_before_op = self.regs.pc;
 
         let opcode = self.fetch8();
@@ -69,7 +69,7 @@ impl Cpu {
         let (micro_ops, cycles) = if opcode == 0xCB {
             let cb_opcode = self.fetch8();
 
-            println!("PC: {:#06X} | Opcode: CB {:#04X}", pc_before_op, cb_opcode);
+            // println!("PC: {:#06X} | Opcode: CB {:#04X}", pc_before_op, cb_opcode);
 
             self.cb_decode(cb_opcode)
         } else {
@@ -86,15 +86,25 @@ impl Cpu {
                 "PC: {:#06X} | Opcode: {:#04X} | Mnemonic: {:<10} | Bytes: {:?} | Cycles: {}",
                 pc_before_op, opcode, mnemonic, instr_bytes, log_cycles
             );
-
             self.decode(opcode)
         };
 
-        for op in micro_ops {
-            self.execute_microop(op);
-        }
+
+        println!(
+    "DECODE PC={:04X} OPCODE={:02X}",
+    pc_before_op,
+    opcode
+);
+
+
+        //    for op in micro_ops {
+        //println!("Executing micro-op: {:?}", op);
+        //self.execute_microop(op);
+        //println!("PC after micro-op: {:04X}", self.regs.pc);
+        //}
 
         self.cycles += cycles as u64;
+        cycles as u64
     }
 
     fn fetch8(&mut self) -> u8 {
@@ -105,7 +115,7 @@ impl Cpu {
         byte
     }
 
-    fn fetch16(&mut self) -> u16 {
+    /*fn fetch16(&mut self) -> u16 {
         let lo = self.inter.read_byte(self.regs.get16(Reg16::PC)) as u16;
         self.regs
             .set16(Reg16::PC, self.regs.get16(Reg16::PC).wrapping_add(1));
@@ -115,6 +125,18 @@ impl Cpu {
             .set16(Reg16::PC, self.regs.get16(Reg16::PC).wrapping_add(1));
 
         (hi << 8) | lo
+    }*/
+
+    fn fetch16(&mut self) -> u16 {
+        let lo = self.inter.read_byte(self.regs.get16(Reg16::PC)) as u16;
+        self.regs
+            .set16(Reg16::PC, self.regs.get16(Reg16::PC).wrapping_add(1));
+
+        let hi = self.inter.read_byte(self.regs.get16(Reg16::PC)) as u16;
+        self.regs
+            .set16(Reg16::PC, self.regs.get16(Reg16::PC).wrapping_add(1));
+
+        lo | (hi << 8)
     }
 
     fn push(&mut self, value: u8) {
@@ -1417,9 +1439,8 @@ impl Cpu {
         match opcode {
             0x00 => (vec![MicroOp::Nop], 1),
             0x01 => (
-                vec![MicroOp::LdReg16FromMem {
+                vec![MicroOp::LdReg16FromImm {
                     dst: Reg16::BC,
-                    src: Reg16::PC,
                 }],
                 3,
             ),
@@ -1456,13 +1477,15 @@ impl Cpu {
             0x0E => (vec![MicroOp::LdReg8FromImm { dst: (Reg8::C) }], 2),
             0x0F => (vec![MicroOp::Rrca], 1),
             0x10 => (vec![MicroOp::Stop], 1),
-            0x11 => (
-                vec![MicroOp::LdReg16FromMem {
-                    dst: (Reg16::DE),
-                    src: (Reg16::PC),
-                }],
-                3,
-            ),
+            0x11 => {
+    let imm = self.fetch16();
+    (
+        vec![MicroOp::LdReg16FromImm {
+            dst: Reg16::DE,
+        }],
+        3
+    )
+}
             0x12 => (
                 vec![MicroOp::LdMemFromReg8 {
                     addr: (Reg16::DE),
@@ -1475,7 +1498,7 @@ impl Cpu {
             0x15 => (vec![MicroOp::DecReg8 { reg: (Reg8::D) }], 1),
             0x16 => (vec![MicroOp::LdReg8FromImm { dst: (Reg8::D) }], 2),
             0x17 => (vec![MicroOp::Rla], 1),
-            0x18 => (vec![MicroOp::JumpRelative { offset: (8) }], 3),
+            0x18 => (vec![ MicroOp::JumpRelative { offset: (8) }], 3),
             0x19 => (
                 vec![MicroOp::AddReg16 {
                     dst: (Reg16::HL),
@@ -1545,13 +1568,7 @@ impl Cpu {
                 }],
                 2,
             ),
-            0x31 => (
-                vec![MicroOp::LdReg16FromMem {
-                    dst: Reg16::SP,
-                    src: Reg16::PC,
-                }],
-                3,
-            ),
+            0x31 => (vec![MicroOp::LdReg16FromImm { dst: Reg16::SP }], 2),
             0x32 => (vec![MicroOp::LdMemFromReg8DecHL { src: (Reg8::A) }], 2),
             0x33 => (vec![MicroOp::IncReg16 { reg: (Reg16::SP) }], 2),
             0x34 => (vec![MicroOp::IncReg16 { reg: (Reg16::HL) }], 3),
@@ -2763,7 +2780,8 @@ impl Cpu {
                 2,
             ),
             0xFF => (vec![MicroOp::Restart { vector: (0x0038) }], 4),
-            _ => panic!("Unimplemented opcode: {:02X}", opcode),
+            _ => { panic!("Invalid opcode {:02X} at PC {:04X}", opcode, self.regs.pc);
+            }
         }
     }
 
@@ -2839,6 +2857,11 @@ impl Cpu {
                 let hi = self.inter.read_byte(addr.wrapping_add(1)) as u16;
                 let value = (hi << 8) | lo;
                 self.regs.set16(dst, value);
+            }
+
+            MicroOp::LdReg16FromImm { dst } => {
+                let val = self.fetch16();
+                self.regs.set16(dst, val);
             }
 
             MicroOp::LdReg8FromMemIncHL { dst } => {
@@ -3335,6 +3358,7 @@ impl Cpu {
             }
 
             MicroOp::JumpRelative { offset } => {
+                let offset = offset as i8 as i16;
                 let pc = self.regs.pc.wrapping_add(offset as u16);
                 self.regs.pc = pc;
             }
@@ -3440,15 +3464,17 @@ impl Cpu {
 
             MicroOp::Rra => {
                 let a = self.regs.get8(Reg8::A);
-                let old = a & 1;
-                let result = (a >> 1) | (old << 7);
+                let carry_in = if self.flags.get_flag('C') { 1 } else { 0 };
+                let carry_out = a & 1;
+
+                let result = (a >> 1) | (carry_in << 7);
 
                 self.regs.set8(Reg8::A, result);
 
-                self.flags.set_flag('z', false);
-                self.flags.set_flag('n', false);
-                self.flags.set_flag('h', false);
-                self.flags.set_flag('c', old == 1);
+                self.flags.set_flag('Z', false);
+                self.flags.set_flag('N', false);
+                self.flags.set_flag('H', false);
+                self.flags.set_flag('C', carry_out != 0);
             }
 
             MicroOp::Di => {
@@ -3824,10 +3850,12 @@ impl Cpu {
                 let carry = (sp_lo as u16 + imm8 as u16) > 0xFF;
                 self.flags.set_flag('h', half_carry);
                 self.flags.set_flag('c', carry);
-            } //Never used might delete
-              //MicroOp::Illegal { opcode } => {
-              //    println!("illegal opcode: {}", opcode);
-              //}
+            }
+
+            MicroOp::Unimplemented => {} //Never used might delete
+                                         //MicroOp::Illegal { opcode } => {
+                                         //    println!("illegal opcode: {}", opcode);
+                                         //}
         }
     }
 }

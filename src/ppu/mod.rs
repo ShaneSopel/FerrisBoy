@@ -4,8 +4,9 @@ use sdl2::render::Canvas;
 use sdl2::video::Window;
 //use sdl2::Sdl;
 
-use crate::interconnect::Interconnect;
+use crate::interconnect::{self, Interconnect};
 
+#[derive(Debug, Clone)]
 pub enum PpuMode {
     HBlank,
     VBlank,
@@ -13,87 +14,136 @@ pub enum PpuMode {
     // Vram,
 }
 
+#[derive(Debug, Clone)]
 pub struct Ppu {
     pub framebuffer: [u32; 160 * 144],
     pub mode: PpuMode,
     cycles: u64,
     scanline: u16,
-    pub inter: Interconnect,
 }
 
 impl Ppu {
-    pub fn new(interconnect: Interconnect) -> Self {
+    pub fn new() -> Self {
         Self {
             framebuffer: [0; 160 * 144],
             mode: PpuMode::Oam,
             cycles: 0,
             // scanline is one row of pixels on the screen.
             scanline: 0,
-            inter: interconnect,
         }
     }
 
-    pub fn step(&mut self, cpu_cycles: u64) {
+    pub fn step(&mut self, cpu_cycles: u64, inter: &mut Interconnect) {
         self.cycles += cpu_cycles;
+
+        let lcdc = inter.read_byte(0xFF40);
+        if lcdc & 0x80 == 0 {
+            self.cycles = 0;
+            self.scanline = 0;
+            inter.write_ly(0);
+            return;
+        }
 
         while self.cycles >= 456 {
             self.cycles -= 456;
 
-            if self.scanline < 144 {
-                self.render_scanline();
-            }
-
+            // Advance scanline
             self.scanline += 1;
-
-            if self.scanline == 144 {
-                self.mode = PpuMode::VBlank;
-            } else if self.scanline > 153 {
+            if self.scanline > 153 {
                 self.scanline = 0;
-                self.mode = PpuMode::Oam;
-            } else {
-                self.mode = PpuMode::HBlank;
             }
+
+            inter.write_ly(self.scanline as u8);
+
+            inter.update_lyc();
+
+            // Determine PPU mode
+            let current_mode = match self.scanline {
+                0..=143 => {
+                    self.render_scanline(inter);
+                    PpuMode::Oam
+                }
+                144..=153 => {
+                    // VBlank period
+                    if self.scanline == 144 {
+                        // Request VBlank interrupt
+                        let iflag = inter.read_byte(0xFF0F);
+                        inter.write_byte(0xFF0F, iflag | 0x01);
+                    }
+                    PpuMode::VBlank
+                }
+                _ => PpuMode::HBlank,
+            };
+
+            // Convert enum to u8 for STAT register
+            let stat_mode_val: u8 = match current_mode {
+                PpuMode::HBlank => 0,
+                PpuMode::VBlank => 1,
+                PpuMode::Oam => 2,
+            };
+
+            // Update STAT register
+            inter.set_stat_mode(stat_mode_val);
+
+            // Update internal mode
+            self.mode = current_mode;
         }
     }
 
-    fn fetch_tile_pixel(&self, tile_index: u8, x: usize, y: usize) -> u8 {
-        let tile_addr = (tile_index as usize) * 16;
-        let row_addr = tile_addr + y * 2;
-        let low = self.inter.vram[row_addr];
-        let high = self.inter.vram[row_addr + 1];
+    pub fn render_scanline(&mut self, inter: &mut Interconnect) {
+        let lcdc = inter.read_byte(0xFF40);
 
-        let bit = 7 - x;
-        ((high >> bit) & 1) << 1 | ((low >> bit) & 1)
-    }
-
-    fn map_color_to_rgb(&self, color: u8) -> u32 {
-        match color {
-            0 => 0xFFFFFFFF,
-            1 => 0xAAAAAAFF,
-            2 => 0x555555FF,
-            3 => 0x000000FF,
-            _ => 0xFFFFFFFF,
+        // LCD disabled → do nothing
+        if lcdc & 0x80 == 0 {
+            return;
         }
-    }
 
-    /// Render one scanline (background only for now)
-    fn render_scanline(&mut self) {
-        let y = self.scanline as usize;
-        let bg_map_base = 0x1800; // 0x9800 - 0x8000
+        let scy = inter.read_byte(0xFF42) as usize;
+        let scx = inter.read_byte(0xFF43) as usize;
+
+        let ly = self.scanline as usize;
+        let y = (ly + scy) & 0xFF;
+
+        let bg_map_base: u16 = if lcdc & 0x08 != 0 { 0x9C00 } else { 0x9800 };
+
+        let tile_data_base: u16 = if lcdc & 0x10 != 0 { 0x8000 } else { 0x8800 };
 
         for x in 0..160 {
-            let tile_x = x / 8;
+            let x_bg = (x + scx) & 0xFF;
+
+            let tile_x = x_bg / 8;
             let tile_y = y / 8;
+
             let map_index = tile_y * 32 + tile_x;
+            let tile_id = inter.read_byte(bg_map_base + map_index as u16);
 
-            let tile_index = self.inter.vram[bg_map_base + map_index];
-            let pixel_x = x % 8;
-            let pixel_y = y % 8;
+            let tile_index: i16 = if tile_data_base == 0x8000 {
+                tile_id as i16
+            } else {
+                (tile_id as i8 as i16) + 128
+            };
 
-            let color_id = self.fetch_tile_pixel(tile_index, pixel_x, pixel_y);
-            let color = self.map_color_to_rgb(color_id);
+            let tile_addr = tile_data_base + (tile_index as u16 * 16);
 
-            self.framebuffer[y * 160 + x] = color;
+            let row = y % 8;
+            let lo = inter.read_byte(tile_addr + (row * 2) as u16);
+            let hi = inter.read_byte(tile_addr + (row * 2 + 1) as u16);
+
+            let bit = 7 - (x_bg % 8);
+            let color = ((hi >> bit) & 1) << 1 | ((lo >> bit) & 1);
+
+            let pixel = Self::dmg_color_to_rgba(color);
+            self.framebuffer[ly * 160 + x] = pixel;
+        }
+    }
+
+    fn dmg_color_to_rgba(color: u8) -> u32 {
+        match color {
+            0 => 0xFFFFFFFF, // white
+            1 => 0xFFAAAAAA, // light gray
+            2 => 0xFF555555, // dark gray
+            3 => 0xFF000000, // black
+            _ => 0xFFFFFFFF,
         }
     }
 

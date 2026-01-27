@@ -1,6 +1,7 @@
 use crate::cpu::Reg16;
 use crate::cpu::Reg8;
 
+#[derive(Debug)]
 pub enum MicroOp {
     Nop,
     Halt,
@@ -47,6 +48,10 @@ pub enum MicroOp {
     LdReg16FromMem {
         dst: Reg16,
         src: Reg16,
+    },
+
+    LdReg16FromImm {
+        dst: Reg16,
     },
     LdMemImm16FromReg16 {
         src: Reg16,
@@ -285,6 +290,7 @@ pub enum MicroOp {
         bit: u8,
     },
     LdHLSPPlusR8,
+    Unimplemented,
     // Illegal {
     //     opcode: u8,
     // },

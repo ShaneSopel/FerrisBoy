@@ -6,6 +6,18 @@ pub enum MicroOp {
     Nop,
     Halt,
     Stop,
+
+
+    LdReg8FromImm 
+    {
+        dst: Reg8,
+    }
+
+    LdReg8FromMemImm16 
+    {
+        dst: Reg8,
+    }
+
     LdReg8FromReg8 {
         dst: Reg8,
         src: Reg8,

@@ -11,12 +11,12 @@ pub enum MicroOp {
     LdReg8FromImm 
     {
         dst: Reg8,
-    }
+    },
 
     LdReg8FromMemImm16 
     {
         dst: Reg8,
-    }
+    },
 
     LdReg8FromReg8 {
         dst: Reg8,
@@ -25,9 +25,6 @@ pub enum MicroOp {
     LdReg8FromMem {
         dst: Reg8,
         src: Reg16,
-    },
-    LdReg8FromImm {
-        dst: Reg8,
     },
     LdReg8FromMemIncHL {
         dst: Reg8,
@@ -46,17 +43,11 @@ pub enum MicroOp {
         addr: Reg16,
         src: Reg8,
     },
-    LdA8FromA {
-        offset: u8,
-    },
-    LdAFromA8 {
-        offset: u8,
-    },
+    LdA8FromA,
+    LdAFromA8,
     LdCFromA,
     LdAFromC,
-    LdMemFromA {
-        addr: u16,
-    },
+    LdMemFromA,
     LdReg16FromMem {
         dst: Reg16,
         src: Reg16,
@@ -75,9 +66,7 @@ pub enum MicroOp {
     LdMemFromImm8 {
         addr: Reg16,
     },
-    LdReg8FromMemImm16 {
-        dst: Reg8,
-    },
+
     IncReg8 {
         reg: Reg8,
     },
@@ -199,28 +188,19 @@ pub enum MicroOp {
     PopReg16 {
         reg: Reg16,
     },
-    JumpAbsolute {
-        addr: u16,
-    },
+    JumpAbsolute,
     JumpAbsoluteIf {
-        addr: u16,
         flag: char,
         expected: bool,
     },
-    JumpRelative {
-        offset: i8,
-    },
+    JumpRelative,
     JumpRelativeIf {
-        offset: i8,
         flag: char,
         expected: bool,
     },
     JumpHL,
-    CallAbsolute {
-        addr: u16,
-    },
+    CallAbsolute,
     CallAbsoluteIf {
-        addr: u16,
         flag: char,
         expected: bool,
     },
@@ -301,7 +281,9 @@ pub enum MicroOp {
     SetRegHl {
         bit: u8,
     },
-    LdHLSPPlusR8,
+    LdHLSPPlusR8{
+        offset: i16,
+    },
     Unimplemented,
     // Illegal {
     //     opcode: u8,

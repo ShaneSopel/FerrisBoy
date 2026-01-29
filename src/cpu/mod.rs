@@ -8,6 +8,7 @@ use crate::cpu::logging::opcode_info;
 use crate::cpu::microops::MicroOp;
 use crate::cpu::registers::{Flags, Reg16, Reg8, Registers};
 use crate::interconnect::Interconnect;
+use std::collections::VecDeque;
 
 enum DecodeFlow {
     NoImm,
@@ -18,15 +19,16 @@ enum DecodeFlow {
 enum CpuState {
     FetchOpcode,
     FetchImm8,
-    FetchImm16Low,
-    FetchImm16High,
+    FetchImm16Lo,
+    FetchImm16Hi,
     ExecuteMicroOp,
+    Decode,
 }
 
 pub struct Cpu {
     pub regs: Registers,
 
-    state: CpuState
+    state: CpuState,
 
     flags: Flags,
 
@@ -38,7 +40,9 @@ pub struct Cpu {
 
     imm16: u16,
     
-    mirco_ops: VecDeque<MicroOp>,
+    micro_ops: VecDeque<MicroOp>,
+
+    opcode: u8,
 
     interrupt_enable_next: bool,
 
@@ -76,13 +80,23 @@ impl Cpu {
 
             alu: Alu::new(),
             inter,
+
+            state: CpuState::FetchOpcode,
+
+            imm8: 0,
+            imm16: 0,
+
+            micro_ops: VecDeque::new(),
+            opcode: 0,
+
+
             interrupt: true,
             interrupt_enable_next: true,
             //halted: false,
             cycles: 0,
         }
     }
-pub fn step(&mut self) {
+pub fn step(&mut self) -> u64 {
     self.cycles += 1;
 
     match self.state {
@@ -93,8 +107,11 @@ pub fn step(&mut self) {
         }
 
         CpuState::Decode => {
-            let (ops, flow) = self.decode(self.opcode);
-            self.micro_ops = ops.into();
+          
+          let (ops, flow, cycles) = self.decode(self.opcode);
+self.cycles += cycles as u64;
+self.micro_ops = ops.into();
+
 
             self.state = match flow {
                 DecodeFlow::NoImm => CpuState::ExecuteMicroOp,
@@ -131,6 +148,8 @@ pub fn step(&mut self) {
             }
         }
     }
+
+    1
 }
 
     fn fetch_imm8(&mut self) {
@@ -144,7 +163,7 @@ fn fetch_imm16_low(&mut self) {
     let lo = self.inter.read_byte(self.regs.pc);
     self.regs.pc += 1;
     self.imm16 = lo as u16;
-    self.state = CpuState::FetchImm16High;
+    self.state = CpuState::FetchImm16Hi;
 }
 
 fn fetch_imm16_high(&mut self) {
@@ -1465,29 +1484,195 @@ fn push_16bit(&mut self, value: u16) {
         }
     }
 
-
-    fn decode(&self, opcode: u8) -> (Vec<MicroOp>, DecodeFlow) {
+pub fn decode(&mut self, opcode: u8) -> (Vec<MicroOp>, DecodeFlow, u8) {
     match opcode {
-        0x00 => (vec![MicroOp::Nop], DecodeFlow::NoImm),
+        // =========================
+        // 0x00–0x0F
+        // =========================
+        0x00 => (vec![MicroOp::Nop], DecodeFlow::NoImm, 4), // NOP: 4 cycles
+
+        0x01 => (
+            vec![MicroOp::LdReg16FromImm { dst: Reg16::BC }],
+            DecodeFlow::Imm16,
+            12, // LD BC,nn: 12 cycles
+        ),
 
         0x06 => (
             vec![MicroOp::LdReg8FromImm { dst: Reg8::B }],
             DecodeFlow::Imm8,
+            8, // LD B,n: 8 cycles
         ),
 
         0x0E => (
             vec![MicroOp::LdReg8FromImm { dst: Reg8::C }],
             DecodeFlow::Imm8,
+            8, // LD C,n: 8 cycles
         ),
 
-        0x01 => (
-            vec![MicroOp::LdReg16FromImm { dst: Reg16::BC }],
+        // =========================
+        // 0x10–0x1F
+        // =========================
+        0x11 => (
+            vec![MicroOp::LdReg16FromImm { dst: Reg16::DE }],
             DecodeFlow::Imm16,
+            12, // LD DE,nn
+        ),
+
+        0x16 => (
+            vec![MicroOp::LdReg8FromImm { dst: Reg8::D }],
+            DecodeFlow::Imm8,
+            8, // LD D,n
         ),
 
         0x18 => (
             vec![MicroOp::JumpRelative],
             DecodeFlow::Imm8,
+            12, // JR n
+        ),
+
+        0x1E => (
+            vec![MicroOp::LdReg8FromImm { dst: Reg8::E }],
+            DecodeFlow::Imm8,
+            8, // LD E,n
+        ),
+
+        // =========================
+        // 0x20–0x2F
+        // =========================
+        0x20 => (
+            vec![MicroOp::JumpRelativeIf { flag: 'z', expected: false }],
+            DecodeFlow::Imm8,
+            12, // JR NZ,n (12 cycles if not taken, +4 if taken)
+        ),
+
+        0x21 => (
+            vec![MicroOp::LdReg16FromImm { dst: Reg16::HL }],
+            DecodeFlow::Imm16,
+            12, // LD HL,nn
+        ),
+
+        0x26 => (
+            vec![MicroOp::LdReg8FromImm { dst: Reg8::H }],
+            DecodeFlow::Imm8,
+            8, // LD H,n
+        ),
+
+        0x28 => (
+            vec![MicroOp::JumpRelativeIf { flag: 'z', expected: true }],
+            DecodeFlow::Imm8,
+            12, // JR Z,n
+        ),
+
+        0x2A => (
+            vec![MicroOp::LdReg8FromMemIncHL { dst: Reg8::A }],
+            DecodeFlow::NoImm,
+            8, // LD A,(HL+) 
+        ),
+
+        0x2E => (
+            vec![MicroOp::LdReg8FromImm { dst: Reg8::L }],
+            DecodeFlow::Imm8,
+            8, // LD L,n
+        ),
+
+        // =========================
+        // 0x30–0x3F
+        // =========================
+        0x30 => (
+            vec![MicroOp::JumpRelativeIf { flag: 'c', expected: false }],
+            DecodeFlow::Imm8,
+            12, // JR NC,n
+        ),
+
+        0x31 => (
+            vec![MicroOp::LdReg16FromImm { dst: Reg16::SP }],
+            DecodeFlow::Imm16,
+            12, // LD SP,nn
+        ),
+
+        0x32 => (
+            vec![MicroOp::LdMemFromReg8DecHL { src: Reg8::A }],
+            DecodeFlow::NoImm,
+            8, // LD (HL-),A
+        ),
+
+        0x36 => (
+            vec![MicroOp::LdMemFromImm8 { addr: Reg16::HL }],
+            DecodeFlow::Imm8,
+            12, // LD (HL),n
+        ),
+
+        0x38 => (
+            vec![MicroOp::JumpRelativeIf { flag: 'c', expected: true }],
+            DecodeFlow::Imm8,
+            12, // JR C,n
+        ),
+
+        0x3A => (
+            vec![MicroOp::LdReg8FromMemDecHL { dst: Reg8::A }],
+            DecodeFlow::NoImm,
+            8, // LD A,(HL-)
+        ),
+
+        0x3E => (
+            vec![MicroOp::LdReg8FromImm { dst: Reg8::A }],
+            DecodeFlow::Imm8,
+            8, // LD A,n
+        ),
+
+        // =========================
+        // 0x40–0x7F (LD r,r′ and r,(HL))
+        // =========================
+        0x46 => (
+            vec![MicroOp::LdReg8FromMem { dst: Reg8::B, src: Reg16::HL }],
+            DecodeFlow::NoImm,
+            8, // LD B,(HL)
+        ),
+
+        0x4E => (
+            vec![MicroOp::LdReg8FromMem { dst: Reg8::C, src: Reg16::HL }],
+            DecodeFlow::NoImm,
+            8, // LD C,(HL)
+        ),
+
+        0x56 => (
+            vec![MicroOp::LdReg8FromMem { dst: Reg8::D, src: Reg16::HL }],
+            DecodeFlow::NoImm,
+            8, // LD D,(HL)
+        ),
+
+        0x5E => (
+            vec![MicroOp::LdReg8FromMem { dst: Reg8::E, src: Reg16::HL }],
+            DecodeFlow::NoImm,
+            8, // LD E,(HL)
+        ),
+
+        0x7E => (
+            vec![MicroOp::LdReg8FromMem { dst: Reg8::A, src: Reg16::HL }],
+            DecodeFlow::NoImm,
+            8, // LD A,(HL)
+        ),
+
+        // =========================
+        // 0x76 HALT
+        // =========================
+        0x76 => (vec![MicroOp::Halt], DecodeFlow::NoImm, 4), // HALT
+
+        // =========================
+        // 0xC0–0xCF
+        // =========================
+        0xC3 => (
+            vec![MicroOp::JumpAbsolute],
+            DecodeFlow::Imm16,
+            16, // JP nn
+        ),
+
+        0xC9 => (vec![MicroOp::Return], DecodeFlow::NoImm, 16), // RET
+
+        0xCD => (
+            vec![MicroOp::CallAbsolute],
+            DecodeFlow::Imm16,
+            24, // CALL nn
         ),
 
         _ => panic!(
@@ -1496,11 +1681,9 @@ fn push_16bit(&mut self, value: u16) {
             self.regs.pc.wrapping_sub(1)
         ),
     }
+}
 
-
-
-
-    pub fn execute_microop(&mut self, op: MicroOp) {
+    pub fn execute_micro_op(&mut self, op: MicroOp) {
         match op {
             MicroOp::Nop => {}
 
@@ -1512,7 +1695,17 @@ fn push_16bit(&mut self, value: u16) {
             MicroOp::LdReg8FromImm { dst } => {
     self.regs.set8(dst, self.imm8);
 
+}
 
+MicroOp::LdReg8FromReg8 { dst, src } => {
+    let v = self.regs.get8(src);
+    self.regs.set8(dst, v);
+}
+
+MicroOp::LdReg8FromMem { dst, src } => {
+    let addr = self.regs.get16(src);
+    let v = self.inter.read_byte(addr);
+    self.regs.set8(dst, v);
 }
 
 
@@ -2046,6 +2239,7 @@ MicroOp::PopReg16 { reg } => {
     self.regs.set16(Reg16::SP, sp.wrapping_add(2));
     self.regs.set16(reg, (hi << 8) | lo);
 }
+
 MicroOp::JumpAbsolute => {
     self.regs.set16(Reg16::PC, self.imm16);
 }

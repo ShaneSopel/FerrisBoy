@@ -64,13 +64,10 @@ fn main() -> Result<()> {
     let mut canvas = window.into_canvas().accelerated().build().unwrap();
 
     'emu: loop {
-        // 1️⃣ Run one CPU instruction
         let cpu_cycles = cpu.step();
 
-        // 2️⃣ Step PPU (Game Boy PPU runs at 4x CPU speed)
         ppu.step(cpu_cycles * 4u64, &mut cpu.inter);
 
-        // 3️⃣ When we hit VBlank, draw
         if matches!(ppu.mode, PpuMode::VBlank) {
             ppu.draw(&mut canvas);
         }

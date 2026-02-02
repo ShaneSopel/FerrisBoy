@@ -4,7 +4,7 @@ use sdl2::render::Canvas;
 use sdl2::video::Window;
 //use sdl2::Sdl;
 
-use crate::interconnect::{self, Interconnect};
+use crate::interconnect::Interconnect;
 
 #[derive(Debug, Clone)]
 pub enum PpuMode {

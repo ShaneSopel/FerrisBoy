@@ -152,7 +152,7 @@ fn ld_mem_from_a() {
 
     cpu.regs.set8(Reg8::A, 0x99);
 
-    cpu.execute_micro_op(MicroOp::LdMemFromA { });
+    cpu.execute_micro_op(MicroOp::LdMemFromA {});
 
     assert_eq!(cpu.inter.read_byte(0x8000), 0x99);
 }
@@ -1151,7 +1151,7 @@ fn jump_absolute_sets_pc() {
     let mut cpu = setup_cpu();
     cpu.regs.set16(Reg16::PC, 0x0000);
 
-    cpu.execute_micro_op(MicroOp::JumpAbsolute { });
+    cpu.execute_micro_op(MicroOp::JumpAbsolute {});
     assert_eq!(cpu.regs.get16(Reg16::PC), 0x1234);
 }
 
@@ -1186,10 +1186,10 @@ fn jump_relative_adds_offset() {
     let mut cpu = setup_cpu();
     cpu.regs.set16(Reg16::PC, 0x1000);
 
-    cpu.execute_micro_op(MicroOp::JumpRelative { });
+    cpu.execute_micro_op(MicroOp::JumpRelative {});
     assert_eq!(cpu.regs.get16(Reg16::PC), 0x1010);
 
-    cpu.execute_micro_op(MicroOp::JumpRelative { });
+    cpu.execute_micro_op(MicroOp::JumpRelative {});
     assert_eq!(cpu.regs.get16(Reg16::PC), 0x1000);
 }
 
@@ -1227,7 +1227,7 @@ fn call_absolute_pushes_pc_and_jumps() {
     cpu.regs.set16(Reg16::PC, 0x1000);
     cpu.regs.set16(Reg16::SP, 0xFFFE);
 
-    cpu.execute_micro_op(MicroOp::CallAbsolute {} );
+    cpu.execute_micro_op(MicroOp::CallAbsolute {});
 
     assert_eq!(cpu.regs.get16(Reg16::PC), 0x2000);
 

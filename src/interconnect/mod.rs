@@ -16,7 +16,7 @@ pub const STAT: u16 = 0xFF41;
 //pub const SCY: u16 = 0xFF42;
 //pub const SCX: u16 = 0xFF43;
 pub const LY: u16 = 0xFF44;
-pub const LYC: u16 = 0xFF45;
+//pub const LYC: u16 = 0xFF45;
 
 #[derive(Debug, Clone)]
 pub struct Interconnect {
@@ -84,23 +84,24 @@ impl Interconnect {
         self.io[(LY - 0xFF00) as usize] = value;
     }
 
-    pub fn read_ly(&self) -> u8 {
-        self.io[(LY - 0xFF00) as usize]
-    }
-
-    pub fn update_lyc(&mut self) {
-        let ly = self.read_ly();
-        let lyc = self.io[(LYC - 0xFF00) as usize];
-
-        let stat = &mut self.io[(STAT - 0xFF00) as usize];
-
-        if ly == lyc {
-            *stat |= 0x04;
-        } else {
-            *stat &= !0x04;
+    /*
+        pub fn read_ly(&self) -> u8 {
+            self.io[(LY - 0xFF00) as usize]
         }
-    }
 
+        pub fn update_lyc(&mut self) {
+            let ly = self.read_ly();
+            let lyc = self.io[(LYC - 0xFF00) as usize];
+
+            let stat = &mut self.io[(STAT - 0xFF00) as usize];
+
+            if ly == lyc {
+                *stat |= 0x04;
+            } else {
+                *stat &= !0x04;
+            }
+        }
+    */
     pub fn set_stat_mode(&mut self, mode: u8) {
         let stat = &mut self.io[(STAT - 0xFF00) as usize];
         *stat = (*stat & 0xFC) | (mode & 0x03);

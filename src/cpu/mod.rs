@@ -98,7 +98,7 @@ impl Cpu {
         }
     }
     pub fn step(&mut self) -> u64 {
-        self.cycles += 1;
+        let mut total_cycles = 0;
 
         match self.state {
             CpuState::FetchOpcode => {
@@ -130,6 +130,7 @@ impl Cpu {
                 }
 
                 self.cycles += cycles as u64;
+                total_cycles += cycles as u64;
                 self.micro_ops = ops.into();
 
                 self.state = match flow {
@@ -181,7 +182,7 @@ impl Cpu {
                 if let Some(op) = self.micro_ops.pop_front() {
                     if CPU_TRACE {
                         println!(
-                            "[EXEC  ] PC={:04X} OPCODE={:02X} μOP={:?}",
+                            "[EXEC  ] PC={:04X} OPCODE={:02X} MicroOP={:?}",
                             self.regs.pc, self.opcode, op
                         );
                     }
@@ -192,51 +193,13 @@ impl Cpu {
             }
         }
 
-        1
+        total_cycles
     }
 
     fn fetch_byte(&mut self) -> u8 {
         let b = self.inter.read_byte(self.regs.pc);
         self.regs.pc = self.regs.pc.wrapping_add(1);
         b
-    }
-
-    fn fetch_imm8(&mut self) {
-        self.imm8 = self.inter.read_byte(self.regs.pc);
-        self.regs.pc = self.regs.pc.wrapping_add(1);
-
-        self.state = CpuState::ExecuteMicroOp;
-    }
-
-    fn fetch_imm16_low(&mut self) {
-        let lo = self.inter.read_byte(self.regs.pc);
-        self.regs.pc += 1;
-        self.imm16 = lo as u16;
-        self.state = CpuState::FetchImm16Hi;
-    }
-
-    fn fetch_imm16_high(&mut self) {
-        let hi = self.inter.read_byte(self.regs.pc);
-        self.regs.pc += 1;
-        self.imm16 |= (hi as u16) << 8;
-        self.state = CpuState::ExecuteMicroOp;
-    }
-
-    fn pop_8bit(&mut self) -> u8 {
-        let sp = self.regs.get16(Reg16::SP);
-
-        let value = self.inter.read_byte(sp);
-
-        self.regs.set16(Reg16::SP, sp.wrapping_add(1));
-
-        value
-    }
-
-    fn push_8bit(&mut self, value: u8) {
-        let sp = self.regs.get16(Reg16::SP).wrapping_sub(1);
-        self.regs.set16(Reg16::SP, sp);
-
-        self.inter.write_byte(sp, value);
     }
 
     fn pop_16bit(&mut self) -> u16 {
@@ -322,7 +285,6 @@ impl Cpu {
                 }
                 _ => unreachable!(),
             },
-            // BIT instructions
             0b01 => {
                 if reg_index == 6 {
                     vec![MicroOp::BitRegHl { bit }]
@@ -330,7 +292,6 @@ impl Cpu {
                     vec![MicroOp::BitReg8 { bit, reg: reg8 }]
                 }
             }
-            // RES instructions
             0b10 => {
                 if reg_index == 6 {
                     vec![MicroOp::ResRegHl { bit }]
@@ -338,7 +299,6 @@ impl Cpu {
                     vec![MicroOp::ResReg8 { bit, reg: reg8 }]
                 }
             }
-            // SET instructions
             0b11 => {
                 if reg_index == 6 {
                     vec![MicroOp::SetRegHl { bit }]
@@ -352,7 +312,7 @@ impl Cpu {
         (micro_ops, DecodeFlow::NoImm, cycles)
     }
 
-    pub fn decode(&mut self, opcode: u8) -> (Vec<MicroOp>, DecodeFlow, u8) {
+    pub fn decode(&mut self, _opcode: u8) -> (Vec<MicroOp>, DecodeFlow, u8) {
         let opcode = self.fetch_byte();
 
         if opcode == 0xCB {
@@ -492,7 +452,7 @@ impl Cpu {
 
             0x17 => (vec![MicroOp::Rla], DecodeFlow::NoImm, 4),
 
-            0x18 => (vec![MicroOp::JumpRelative], DecodeFlow::Imm8, 12),
+            0x18 => (vec![MicroOp::JumpRelative], DecodeFlow::Imm8, 0),
 
             0x19 => (
                 vec![MicroOp::AddReg16 {
@@ -544,7 +504,7 @@ impl Cpu {
                     expected: false,
                 }],
                 DecodeFlow::Imm8,
-                12,
+                0,
             ),
 
             0x21 => (
@@ -591,7 +551,7 @@ impl Cpu {
                     expected: true,
                 }],
                 DecodeFlow::Imm8,
-                12,
+                0,
             ),
 
             0x29 => (
@@ -631,7 +591,7 @@ impl Cpu {
                 8,
             ),
 
-            0x2F => (vec![MicroOp::Rra], DecodeFlow::NoImm, 4),
+            0x2F => (vec![MicroOp::Cpl], DecodeFlow::NoImm, 4),
 
             // =========================
             // 0x30–0x3F
@@ -1512,9 +1472,233 @@ impl Cpu {
 
             0x96 => (vec![MicroOp::SubReg8FromMemHl], DecodeFlow::NoImm, 8),
 
+            0x97 => (
+                vec![MicroOp::SubReg8 {
+                    dst: Reg8::A,
+                    src: Reg8::A,
+                }],
+                DecodeFlow::NoImm,
+                4,
+            ),
+
+            0x98 => (
+                vec![MicroOp::SubCarry8 {
+                    dst: Reg8::A,
+                    src: Reg8::B,
+                }],
+                DecodeFlow::NoImm,
+                4,
+            ),
+
+            0x99 => (
+                vec![MicroOp::SubCarry8 {
+                    dst: Reg8::A,
+                    src: Reg8::C,
+                }],
+                DecodeFlow::NoImm,
+                4,
+            ),
+
+            0x9A => (
+                vec![MicroOp::SubCarry8 {
+                    dst: Reg8::A,
+                    src: Reg8::D,
+                }],
+                DecodeFlow::NoImm,
+                4,
+            ),
+
+            0x9B => (
+                vec![MicroOp::SubCarry8 {
+                    dst: Reg8::A,
+                    src: Reg8::E,
+                }],
+                DecodeFlow::NoImm,
+                4,
+            ),
+
+            0x9C => (
+                vec![MicroOp::SubCarry8 {
+                    dst: Reg8::A,
+                    src: Reg8::H,
+                }],
+                DecodeFlow::NoImm,
+                4,
+            ),
+
+            0x9D => (
+                vec![MicroOp::SubCarry8 {
+                    dst: Reg8::A,
+                    src: Reg8::L,
+                }],
+                DecodeFlow::NoImm,
+                4,
+            ),
+
+            0x9E => (
+                vec![MicroOp::SubCarry8Mem {
+                    dst: Reg8::A,
+                    src: Reg16::HL,
+                }],
+                DecodeFlow::NoImm,
+                8,
+            ),
+
+            0x9F => (
+                vec![MicroOp::SubCarry8 {
+                    dst: Reg8::A,
+                    src: Reg8::A,
+                }],
+                DecodeFlow::NoImm,
+                4,
+            ),
+
             // =========================
             // 0xA0–0xAF
             // =========================
+            0xA0 => (
+                vec![MicroOp::AndReg8 {
+                    dst: Reg8::A,
+                    src: Reg8::B,
+                }],
+                DecodeFlow::NoImm,
+                4,
+            ),
+
+            0xA1 => (
+                vec![MicroOp::AndReg8 {
+                    dst: Reg8::A,
+                    src: Reg8::C,
+                }],
+                DecodeFlow::NoImm,
+                4,
+            ),
+
+            0xA2 => (
+                vec![MicroOp::AndReg8 {
+                    dst: Reg8::A,
+                    src: Reg8::D,
+                }],
+                DecodeFlow::NoImm,
+                4,
+            ),
+
+            0xA3 => (
+                vec![MicroOp::AndReg8 {
+                    dst: Reg8::A,
+                    src: Reg8::E,
+                }],
+                DecodeFlow::NoImm,
+                4,
+            ),
+
+            0xA4 => (
+                vec![MicroOp::AndReg8 {
+                    dst: Reg8::A,
+                    src: Reg8::H,
+                }],
+                DecodeFlow::NoImm,
+                4,
+            ),
+
+            0xA5 => (
+                vec![MicroOp::AndReg8 {
+                    dst: Reg8::A,
+                    src: Reg8::L,
+                }],
+                DecodeFlow::NoImm,
+                4,
+            ),
+
+            0xA6 => (
+                vec![MicroOp::AndReg8Mem {
+                    dst: Reg8::A,
+                    src: Reg16::HL,
+                }],
+                DecodeFlow::NoImm,
+                8,
+            ),
+
+            0xA7 => (
+                vec![MicroOp::AndReg8 {
+                    dst: Reg8::A,
+                    src: Reg8::A,
+                }],
+                DecodeFlow::NoImm,
+                4,
+            ),
+
+            0xA8 => (
+                vec![MicroOp::XorReg8 {
+                    dst: Reg8::A,
+                    src: Reg8::B,
+                }],
+                DecodeFlow::NoImm,
+                4,
+            ),
+
+            0xA9 => (
+                vec![MicroOp::XorReg8 {
+                    dst: Reg8::A,
+                    src: Reg8::C,
+                }],
+                DecodeFlow::NoImm,
+                4,
+            ),
+
+            0xAA => (
+                vec![MicroOp::XorReg8 {
+                    dst: Reg8::A,
+                    src: Reg8::D,
+                }],
+                DecodeFlow::NoImm,
+                4,
+            ),
+
+            0xAB => (
+                vec![MicroOp::XorReg8 {
+                    dst: Reg8::A,
+                    src: Reg8::E,
+                }],
+                DecodeFlow::NoImm,
+                4,
+            ),
+
+            0xAC => (
+                vec![MicroOp::XorReg8 {
+                    dst: Reg8::A,
+                    src: Reg8::H,
+                }],
+                DecodeFlow::NoImm,
+                4,
+            ),
+
+            0xAD => (
+                vec![MicroOp::XorReg8 {
+                    dst: Reg8::A,
+                    src: Reg8::L,
+                }],
+                DecodeFlow::NoImm,
+                4,
+            ),
+
+            0xAE => (
+                vec![MicroOp::XorReg8Mem {
+                    dst: Reg8::A,
+                    src: Reg16::HL,
+                }],
+                DecodeFlow::NoImm,
+                8,
+            ),
+
+            0xAF => (
+                vec![MicroOp::XorReg8 {
+                    dst: Reg8::A,
+                    src: Reg8::A,
+                }],
+                DecodeFlow::NoImm,
+                4,
+            ),
 
             // =========================
             // 0xB0–0xBF
@@ -1537,21 +1721,431 @@ impl Cpu {
                 4,
             ),
 
+            0xB2 => (
+                vec![MicroOp::OrReg8 {
+                    dst: Reg8::A,
+                    src: Reg8::D,
+                }],
+                DecodeFlow::NoImm,
+                4,
+            ),
+
+            0xB3 => (
+                vec![MicroOp::OrReg8 {
+                    dst: Reg8::A,
+                    src: Reg8::E,
+                }],
+                DecodeFlow::NoImm,
+                4,
+            ),
+
+            0xB4 => (
+                vec![MicroOp::OrReg8 {
+                    dst: Reg8::A,
+                    src: Reg8::H,
+                }],
+                DecodeFlow::NoImm,
+                4,
+            ),
+
+            0xB5 => (
+                vec![MicroOp::OrReg8 {
+                    dst: Reg8::A,
+                    src: Reg8::L,
+                }],
+                DecodeFlow::NoImm,
+                4,
+            ),
+
+            0xB6 => (
+                vec![MicroOp::OrReg8Mem {
+                    dst: Reg8::A,
+                    src: Reg16::HL,
+                }],
+                DecodeFlow::NoImm,
+                8,
+            ),
+
+            0xB7 => (
+                vec![MicroOp::OrReg8 {
+                    dst: Reg8::A,
+                    src: Reg8::A,
+                }],
+                DecodeFlow::NoImm,
+                4,
+            ),
+
+            0xB8 => (
+                vec![MicroOp::CpReg8 {
+                    dst: Reg8::A,
+                    src: Reg8::B,
+                }],
+                DecodeFlow::NoImm,
+                4,
+            ),
+
+            0xB9 => (
+                vec![MicroOp::CpReg8 {
+                    dst: Reg8::A,
+                    src: Reg8::C,
+                }],
+                DecodeFlow::NoImm,
+                4,
+            ),
+
+            0xBA => (
+                vec![MicroOp::CpReg8 {
+                    dst: Reg8::A,
+                    src: Reg8::D,
+                }],
+                DecodeFlow::NoImm,
+                4,
+            ),
+
+            0xBB => (
+                vec![MicroOp::CpReg8 {
+                    dst: Reg8::A,
+                    src: Reg8::E,
+                }],
+                DecodeFlow::NoImm,
+                4,
+            ),
+
+            0xBC => (
+                vec![MicroOp::CpReg8 {
+                    dst: Reg8::A,
+                    src: Reg8::H,
+                }],
+                DecodeFlow::NoImm,
+                4,
+            ),
+
+            0xBD => (
+                vec![MicroOp::CpReg8 {
+                    dst: Reg8::A,
+                    src: Reg8::L,
+                }],
+                DecodeFlow::NoImm,
+                4,
+            ),
+
+            0xBE => (
+                vec![MicroOp::CpReg8Mem {
+                    dst: Reg8::A,
+                    src: Reg16::HL,
+                }],
+                DecodeFlow::NoImm,
+                8,
+            ),
+
+            0xBF => (
+                vec![MicroOp::CpReg8 {
+                    dst: Reg8::A,
+                    src: Reg8::A,
+                }],
+                DecodeFlow::NoImm,
+                4,
+            ),
+
             // =========================
             // 0xC0–0xCF
             // =========================
+            0xC0 => (
+                vec![MicroOp::ReturnIf {
+                    flag: ('z'),
+                    expected: (false),
+                }],
+                DecodeFlow::NoImm,
+                0,
+            ),
+
+            0xC1 => (
+                vec![MicroOp::PopReg16 { reg: Reg16::BC }],
+                DecodeFlow::NoImm,
+                12,
+            ),
+
+            0xC2 => (
+                vec![MicroOp::JumpAbsoluteIf {
+                    flag: 'z',
+                    expected: false,
+                }],
+                DecodeFlow::Imm16,
+                0,
+            ),
+
             0xC3 => (vec![MicroOp::JumpAbsolute], DecodeFlow::Imm16, 16),
 
-            0xC9 => (vec![MicroOp::Return], DecodeFlow::NoImm, 16), // RET
+            0xC4 => (
+                vec![MicroOp::CallAbsoluteIf {
+                    flag: ('z'),
+                    expected: (false),
+                }],
+                DecodeFlow::NoImm,
+                0,
+            ),
 
-            0xCD => (vec![MicroOp::CallAbsolute], DecodeFlow::Imm16, 24),
+            0xC5 => (
+                vec![MicroOp::PushReg16 { reg: Reg16::BC }],
+                DecodeFlow::NoImm,
+                16,
+            ),
+
+            0xC6 => (
+                vec![MicroOp::AddReg8Imm { dst: Reg8::A }],
+                DecodeFlow::Imm8,
+                8,
+            ),
+
+            0xC7 => (
+                vec![MicroOp::Restart { vector: 0x00 }],
+                DecodeFlow::NoImm,
+                0,
+            ),
+
+            0xC8 => (
+                vec![MicroOp::ReturnIf {
+                    flag: ('z'),
+                    expected: (true),
+                }],
+                DecodeFlow::NoImm,
+                0,
+            ),
+
+            0xC9 => (vec![MicroOp::Return], DecodeFlow::NoImm, 0),
+
+            0xCA => (
+                vec![MicroOp::JumpAbsoluteIf {
+                    flag: 'z',
+                    expected: true,
+                }],
+                DecodeFlow::Imm16,
+                0,
+            ),
+
+            0xCC => (
+                vec![MicroOp::CallAbsoluteIf {
+                    flag: ('z'),
+                    expected: (true),
+                }],
+                DecodeFlow::NoImm,
+                0,
+            ),
+
+            0xCD => (vec![MicroOp::CallAbsolute], DecodeFlow::Imm16, 0),
+
+            0xCE => (
+                vec![MicroOp::AddCarry8Imm { dst: Reg8::A }],
+                DecodeFlow::Imm8,
+                8,
+            ),
+
+            0xCF => (
+                vec![MicroOp::Restart { vector: 0x08 }],
+                DecodeFlow::NoImm,
+                0,
+            ),
+
+            // =========================
+            // 0xD0–0xDF
+            // =========================
+            0xD0 => (
+                vec![MicroOp::ReturnIf {
+                    flag: ('c'),
+                    expected: (false),
+                }],
+                DecodeFlow::NoImm,
+                0,
+            ),
+
+            0xD1 => (
+                vec![MicroOp::PopReg16 { reg: Reg16::DE }],
+                DecodeFlow::NoImm,
+                12,
+            ),
+
+            0xD2 => (
+                vec![MicroOp::JumpAbsoluteIf {
+                    flag: 'c',
+                    expected: false,
+                }],
+                DecodeFlow::Imm16,
+                0,
+            ),
+
+            0xD4 => (
+                vec![MicroOp::CallAbsoluteIf {
+                    flag: ('c'),
+                    expected: (false),
+                }],
+                DecodeFlow::NoImm,
+                0,
+            ),
+
+            0xD5 => (
+                vec![MicroOp::PushReg16 { reg: Reg16::DE }],
+                DecodeFlow::NoImm,
+                16,
+            ),
+
+            0xD6 => (
+                vec![MicroOp::SubReg8Imm { dst: Reg8::A }],
+                DecodeFlow::Imm8,
+                8,
+            ),
+
+            0xD7 => (
+                vec![MicroOp::Restart { vector: 0x10 }],
+                DecodeFlow::NoImm,
+                0,
+            ),
+
+            0xD8 => (
+                vec![MicroOp::ReturnIf {
+                    flag: ('c'),
+                    expected: (true),
+                }],
+                DecodeFlow::NoImm,
+                0,
+            ),
+
+            0xD9 => (vec![MicroOp::Reti], DecodeFlow::NoImm, 0),
+
+            0xDA => (
+                vec![MicroOp::JumpAbsoluteIf {
+                    flag: 'c',
+                    expected: true,
+                }],
+                DecodeFlow::Imm16,
+                0,
+            ),
+
+            0xDC => (
+                vec![MicroOp::CallAbsoluteIf {
+                    flag: ('c'),
+                    expected: (true),
+                }],
+                DecodeFlow::NoImm,
+                0,
+            ),
+
+            0xDE => (
+                vec![MicroOp::SubCarry8Imm { dst: Reg8::A }],
+                DecodeFlow::Imm8,
+                8,
+            ),
+
+            0xDF => (
+                vec![MicroOp::Restart { vector: 0x18 }],
+                DecodeFlow::NoImm,
+                0,
+            ),
+
+            // =========================
+            // 0xE0–0xEF
+            // =========================
+            0xE0 => (vec![MicroOp::LdA8FromA], DecodeFlow::Imm8, 12),
+
+            0xE1 => (
+                vec![MicroOp::PopReg16 { reg: Reg16::HL }],
+                DecodeFlow::NoImm,
+                12,
+            ),
+
+            0xE2 => (vec![MicroOp::LdCFromA], DecodeFlow::NoImm, 8),
+
+            0xE5 => (
+                vec![MicroOp::PushReg16 { reg: Reg16::HL }],
+                DecodeFlow::NoImm,
+                16,
+            ),
+
+            0xE6 => (
+                vec![MicroOp::AndReg8Imm { dst: Reg8::A }],
+                DecodeFlow::Imm8,
+                8,
+            ),
+
+            0xE7 => (
+                vec![MicroOp::Restart { vector: 0x20 }],
+                DecodeFlow::NoImm,
+                0,
+            ),
+
+            0xE8 => (vec![MicroOp::AddImmToSP], DecodeFlow::Imm8, 8),
+
+            0xE9 => (vec![MicroOp::JumpHL], DecodeFlow::Imm8, 0),
+
+            0xEA => (vec![MicroOp::LdMemAbsFromA], DecodeFlow::Imm16, 16),
+            0xEE => (
+                vec![MicroOp::XorReg8Imm { dst: Reg8::A }],
+                DecodeFlow::Imm8,
+                8,
+            ),
+
+            0xEF => (
+                vec![MicroOp::Restart { vector: 0x28 }],
+                DecodeFlow::NoImm,
+                0,
+            ),
 
             // =========================
             // 0xF0–0xFF
             // =========================
-            0xF3 => (vec![MicroOp::LdAFromC], DecodeFlow::NoImm, 8),
+            0xF0 => (vec![MicroOp::LdAFromA8], DecodeFlow::Imm8, 12),
+
+            0xF1 => (
+                vec![MicroOp::PopReg16 { reg: Reg16::AF }],
+                DecodeFlow::NoImm,
+                12,
+            ),
+
+            0xF2 => (vec![MicroOp::LdAFromC], DecodeFlow::NoImm, 8),
+
+            0xF3 => (vec![MicroOp::Di], DecodeFlow::NoImm, 4),
+
+            0xF5 => (
+                vec![MicroOp::PushReg16 { reg: Reg16::AF }],
+                DecodeFlow::NoImm,
+                16,
+            ),
+
+            0xF6 => (
+                vec![MicroOp::OrReg8Imm { dst: Reg8::A }],
+                DecodeFlow::Imm8,
+                8,
+            ),
+
+            0xF7 => (
+                vec![MicroOp::Restart { vector: 0x30 }],
+                DecodeFlow::NoImm,
+                0,
+            ),
 
             0xF8 => (vec![MicroOp::LdHlFromSpPlusImm8], DecodeFlow::Imm8, 12),
+
+            0xF9 => (
+                vec![MicroOp::LdReg16FromMem {
+                    dst: Reg16::SP,
+                    src: Reg16::HL,
+                }],
+                DecodeFlow::NoImm,
+                8,
+            ),
+            0xFA => (vec![MicroOp::LdAFromMemAbs], DecodeFlow::Imm16, 16),
+            0xFB => (vec![MicroOp::Ei], DecodeFlow::NoImm, 4),
+
+            0xFE => (
+                vec![MicroOp::CpReg8Imm { dst: Reg8::A }],
+                DecodeFlow::NoImm,
+                8,
+            ),
+
+            0xFF => (
+                vec![MicroOp::Restart { vector: 0x38 }],
+                DecodeFlow::NoImm,
+                0,
+            ),
 
             _ => panic!(
                 "Invalid opcode {:02X} at PC {:04X}",
@@ -1585,15 +2179,6 @@ impl Cpu {
                 self.regs.set8(dst, v);
             }
 
-            MicroOp::LdReg8FromImm { dst } => {
-                self.regs.set8(dst, self.imm8);
-            }
-
-            MicroOp::LdReg8FromMemImm16 { dst } => {
-                let value = self.inter.read_byte(self.imm16);
-                self.regs.set8(dst, value);
-            }
-
             MicroOp::LdReg16FromImm { dst } => {
                 self.regs.set16(dst, self.imm16);
             }
@@ -1612,13 +2197,6 @@ impl Cpu {
                 let hl = self.regs.get16(Reg16::HL);
                 let value = self.inter.read_byte(hl);
                 self.regs.set8(dst, value);
-                self.regs.set16(Reg16::HL, hl.wrapping_add(1));
-            }
-
-            MicroOp::LdMemFromReg8IncHL { src } => {
-                let hl = self.regs.get16(Reg16::HL);
-                let value = self.regs.get8(src);
-                self.inter.write_byte(hl, value);
                 self.regs.set16(Reg16::HL, hl.wrapping_add(1));
             }
 
@@ -1665,29 +2243,11 @@ impl Cpu {
                 self.inter.write_byte(self.imm16, value);
             }
 
-            MicroOp::LdReg8FromMemImm16 { dst } => {
-                let value = self.inter.read_byte(self.imm16);
-                self.regs.set8(dst, value);
-            }
-
             MicroOp::LdReg16FromMem { dst, src } => {
                 let addr = self.regs.get16(src);
                 let lo = self.inter.read_byte(addr) as u16;
                 let hi = self.inter.read_byte(addr.wrapping_add(1)) as u16;
                 self.regs.set16(dst, (hi << 8) | lo);
-            }
-
-            MicroOp::LdReg16FromImm { dst } => {
-                self.regs.set16(dst, self.imm16);
-            }
-
-            MicroOp::LdMemImm16FromReg16 { src } => {
-                let value = self.regs.get16(src);
-                let lo = value as u8;
-                let hi = (value >> 8) as u8;
-
-                self.inter.write_byte(self.imm16, lo);
-                self.inter.write_byte(self.imm16.wrapping_add(1), hi);
             }
 
             MicroOp::LdMemFromReg8 { addr, src } => {
@@ -1696,13 +2256,6 @@ impl Cpu {
                 self.inter.write_byte(address, value);
             }
 
-            MicroOp::LdReg8FromReg16 { dst, src } => {
-                let addr = self.regs.get16(src);
-                let value = self.inter.read_byte(addr);
-                self.regs.set8(dst, value);
-            }
-
-            //HL, n
             MicroOp::LdMemFromImm8 { addr } => {
                 let address = self.regs.get16(addr);
                 self.inter.write_byte(address, self.imm8);
@@ -1710,6 +2263,18 @@ impl Cpu {
 
             MicroOp::LdAFromMemReg16 { reg } => {
                 let addr = self.regs.get16(reg);
+                let val = self.inter.read_byte(addr);
+                self.regs.set8(Reg8::A, val);
+            }
+
+            MicroOp::LdMemAbsFromA => {
+                let addr = self.imm16;
+                let a = self.regs.get8(Reg8::A);
+                self.inter.write_byte(addr, a);
+            }
+
+            MicroOp::LdAFromMemAbs => {
+                let addr = self.imm16;
                 let val = self.inter.read_byte(addr);
                 self.regs.set8(Reg8::A, val);
             }
@@ -1763,18 +2328,6 @@ impl Cpu {
                 self.inter.write_byte(addr, result);
             }
 
-            MicroOp::DecRegHl => {
-                let addr = self.regs.get16(Reg16::HL);
-                let old = self.inter.read_byte(addr);
-                let result = old.wrapping_sub(1);
-
-                self.flags.set_flag('z', result == 0);
-                self.flags.set_flag('n', true);
-                self.flags.set_flag('h', (old & 0x0F) == 0x00);
-
-                self.inter.write_byte(addr, result);
-            }
-
             MicroOp::AddReg8 { dst, src } => {
                 let a = self.regs.get8(dst);
                 let b = self.regs.get8(src);
@@ -1806,8 +2359,9 @@ impl Cpu {
                 self.regs.set8(dst, result);
             }
 
-            MicroOp::AddReg8Imm { dst, addr } => {
+            MicroOp::AddReg8Imm { dst } => {
                 let a = self.regs.get8(dst);
+                let addr = self.imm8;
 
                 let alu_out = self.alu.add_8bit(a, addr);
 
@@ -1869,9 +2423,10 @@ impl Cpu {
                 self.regs.set8(dst, result);
             }
 
-            MicroOp::AddCarry8Imm { dst, addr } => {
+            MicroOp::AddCarry8Imm { dst } => {
                 let a = self.regs.get8(dst);
                 let carry = if self.flags.get_flag('C') { 1 } else { 0 };
+                let addr = self.imm8;
 
                 let alu_out = self.alu.add_8bit(a, addr + carry);
                 let result = alu_out.result;
@@ -1914,8 +2469,9 @@ impl Cpu {
                 self.flags.set_flag('c', alu_out.c);
             }
 
-            MicroOp::SubReg8Imm { dst, addr } => {
+            MicroOp::SubReg8Imm { dst } => {
                 let a = self.regs.get8(dst);
+                let addr = self.imm8;
 
                 let alu_out = self.alu.sub_8bit(a, addr);
 
@@ -1961,9 +2517,10 @@ impl Cpu {
                 self.regs.set8(dst, result);
             }
 
-            MicroOp::SubCarry8Imm { dst, addr } => {
+            MicroOp::SubCarry8Imm { dst } => {
                 let a = self.regs.get8(dst);
                 let carry = self.flags.get_flag('c');
+                let addr = self.imm8;
 
                 let alu_out = self.alu.sbc_8bit(carry, a, addr);
                 let result = alu_out.result;
@@ -2007,8 +2564,9 @@ impl Cpu {
                 self.regs.set8(dst, result);
             }
 
-            MicroOp::XorReg8Imm { dst, addr } => {
+            MicroOp::XorReg8Imm { dst } => {
                 let a = self.regs.get8(dst);
+                let addr = self.imm8;
 
                 let alu_out = self.alu.xor_8bit(a, addr);
 
@@ -2046,8 +2604,9 @@ impl Cpu {
                 self.flags.set_flag('c', alu_out.c);
             }
 
-            MicroOp::CpReg8Imm { dst, addr } => {
+            MicroOp::CpReg8Imm { dst } => {
                 let a = self.regs.get8(dst);
+                let addr = self.imm8;
 
                 let alu_out = self.alu.cp_8bit(a, addr);
 
@@ -2088,8 +2647,9 @@ impl Cpu {
                 self.regs.set8(dst, result);
             }
 
-            MicroOp::OrReg8Imm { dst, addr } => {
+            MicroOp::OrReg8Imm { dst } => {
                 let a = self.regs.get8(dst);
+                let addr = self.imm8;
 
                 let alu_out = self.alu.or_8bit(a, addr);
 
@@ -2133,8 +2693,9 @@ impl Cpu {
                 self.regs.set8(dst, result);
             }
 
-            MicroOp::AndReg8Imm { dst, addr } => {
+            MicroOp::AndReg8Imm { dst } => {
                 let a = self.regs.get8(dst);
+                let addr = self.imm8;
                 let alu_out = self.alu.and_8bit(a, addr);
 
                 self.flags.set_flag('z', alu_out.z);
@@ -2168,11 +2729,15 @@ impl Cpu {
 
             MicroOp::JumpAbsolute => {
                 self.regs.set16(Reg16::PC, self.imm16);
+                self.cycles += 16;
             }
 
             MicroOp::JumpAbsoluteIf { flag, expected } => {
                 if self.flags.get_flag(flag) == expected {
                     self.regs.set16(Reg16::PC, self.imm16);
+                    self.cycles += 16;
+                } else {
+                    self.cycles += 12;
                 }
             }
 
@@ -2180,6 +2745,7 @@ impl Cpu {
                 let offset = self.imm8 as i8 as i16;
                 let pc = self.regs.get16(Reg16::PC);
                 self.regs.set16(Reg16::PC, pc.wrapping_add(offset as u16));
+                self.cycles += 12;
             }
 
             MicroOp::JumpRelativeIf { flag, expected } => {
@@ -2187,18 +2753,23 @@ impl Cpu {
                     let offset = self.imm8 as i8 as i16;
                     let pc = self.regs.get16(Reg16::PC);
                     self.regs.set16(Reg16::PC, pc.wrapping_add(offset as u16));
+                    self.cycles += 12;
+                } else {
+                    self.cycles += 8;
                 }
             }
 
             MicroOp::JumpHL => {
                 let hl = self.regs.get16(Reg16::HL);
                 self.regs.set16(Reg16::PC, hl);
+                self.cycles += 4;
             }
 
             MicroOp::CallAbsolute => {
                 let pc = self.regs.get16(Reg16::PC);
                 self.push_16bit(pc);
                 self.regs.set16(Reg16::PC, self.imm16);
+                self.cycles += 24;
             }
 
             MicroOp::CallAbsoluteIf { flag, expected } => {
@@ -2206,18 +2777,25 @@ impl Cpu {
                     let pc = self.regs.get16(Reg16::PC);
                     self.push_16bit(pc);
                     self.regs.set16(Reg16::PC, self.imm16);
+                    self.cycles += 24;
+                } else {
+                    self.cycles += 12;
                 }
             }
 
             MicroOp::Return => {
                 let addr = self.pop_16bit();
                 self.regs.set16(Reg16::PC, addr);
+                self.cycles += 16;
             }
 
             MicroOp::ReturnIf { flag, expected } => {
                 if self.flags.get_flag(flag) == expected {
                     let addr = self.pop_16bit();
                     self.regs.set16(Reg16::PC, addr);
+                    self.cycles += 20;
+                } else {
+                    self.cycles += 8;
                 }
             }
 
@@ -2225,12 +2803,14 @@ impl Cpu {
                 let addr = self.pop_16bit();
                 self.regs.set16(Reg16::PC, addr);
                 self.interrupt = true;
+                self.cycles += 16;
             }
 
             MicroOp::Restart { vector } => {
                 let pc = self.regs.get16(Reg16::PC);
                 self.push_16bit(pc);
                 self.regs.set16(Reg16::PC, vector);
+                self.cycles += 16;
             }
 
             MicroOp::Rlca => {
@@ -2576,8 +3156,9 @@ impl Cpu {
                 self.flags.set_flag('c', alu_out.c);
                 self.inter.write_byte(addr, result);
             }
-            MicroOp::AddImmToSP { imm } => {
+            MicroOp::AddImmToSP => {
                 let sp = self.regs.sp;
+                let imm = self.imm8;
                 let result = sp.wrapping_add(imm as i16 as u16);
 
                 let half_carry = ((sp & 0xF) + ((imm as u16) & 0xF)) > 0xF;
@@ -2643,33 +3224,6 @@ impl Cpu {
 
                 self.regs.set8(reg, result);
             }
-
-            MicroOp::LdHLSPPlusR8 { offset } => {
-                // offset is already an i8 from fetched immediate
-                let sp = self.regs.get16(Reg16::SP);
-                let result = sp.wrapping_add(offset as i16 as u16);
-                self.regs.set16(Reg16::HL, result);
-
-                // Flags
-                self.flags.set_flag('z', false);
-                self.flags.set_flag('n', false);
-
-                let sp_lo = sp as u8;
-                let offset_u8 = offset as u8;
-
-                // Half-carry: did the lower nibble overflow?
-                let half_carry = ((sp_lo & 0x0F).wrapping_add(offset_u8 & 0x0F)) > 0x0F;
-                // Carry: did the full byte overflow?
-                let carry = sp_lo.wrapping_add(offset_u8) < sp_lo;
-
-                self.flags.set_flag('h', half_carry);
-                self.flags.set_flag('c', carry);
-            }
-
-            MicroOp::Unimplemented => {} //Never used might delete
-                                         //MicroOp::Illegal { opcode } => {
-                                         //    println!("illegal opcode: {}", opcode);
-                                         //}
         }
     }
 }

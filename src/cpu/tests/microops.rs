@@ -65,19 +65,6 @@ fn ld_reg8_from_mem_inc_hl() {
 }
 
 #[test]
-fn ld_mem_from_reg8_inc_hl() {
-    let mut cpu = setup_cpu();
-
-    cpu.regs.set16(Reg16::HL, 0x8000);
-    cpu.regs.set8(Reg8::A, 0x99);
-
-    cpu.execute_micro_op(MicroOp::LdMemFromReg8IncHL { src: (Reg8::A) });
-
-    assert_eq!(cpu.inter.read_byte(0x8000), 0x99);
-    assert_eq!(cpu.regs.get16(Reg16::HL), 0x8001);
-}
-
-#[test]
 fn ld_reg8_from_mem_dec_hl() {
     let mut cpu = setup_cpu();
 
@@ -191,21 +178,6 @@ fn ld_mem_imm16_from_reg16() {
 }
 
 #[test]
-fn ld_reg8_from_reg16() {
-    let mut cpu = setup_cpu();
-
-    cpu.regs.set16(Reg16::HL, 0x8000);
-    cpu.inter.write_byte(0x8000, 0x99);
-
-    cpu.execute_micro_op(MicroOp::LdReg8FromReg16 {
-        dst: Reg8::A,
-        src: Reg16::HL,
-    });
-
-    assert_eq!(cpu.regs.get8(Reg8::A), 0x99);
-}
-
-#[test]
 fn ld_mem_from_imm8() {
     let mut cpu = setup_cpu();
 
@@ -300,10 +272,7 @@ fn add_reg8_imm() {
     let mut cpu = setup_cpu();
 
     cpu.regs.set8(Reg8::A, 0x01);
-    cpu.execute_micro_op(MicroOp::AddReg8Imm {
-        dst: (Reg8::A),
-        addr: (0x80),
-    });
+    cpu.execute_micro_op(MicroOp::AddReg8Imm { dst: (Reg8::A) });
 
     assert_eq!(cpu.regs.get8(Reg8::A), 0x81);
 }
@@ -441,10 +410,7 @@ fn add_carry8_imm_basic() {
     cpu.regs.set8(Reg8::A, 0x01);
     cpu.flags.c = false;
 
-    cpu.execute_micro_op(MicroOp::AddCarry8Imm {
-        dst: (Reg8::A),
-        addr: (0x02),
-    });
+    cpu.execute_micro_op(MicroOp::AddCarry8Imm { dst: (Reg8::A) });
 
     assert_eq!(cpu.regs.get8(Reg8::A), 0x03);
     assert!(!cpu.flags.c);
@@ -458,10 +424,7 @@ fn add_carry8_imm_with_carry_in() {
     cpu.regs.set8(Reg8::A, 0xFF);
     cpu.flags.c = true;
 
-    cpu.execute_micro_op(MicroOp::AddCarry8Imm {
-        dst: (Reg8::A),
-        addr: (0x00),
-    });
+    cpu.execute_micro_op(MicroOp::AddCarry8Imm { dst: (Reg8::A) });
 
     assert_eq!(cpu.regs.get8(Reg8::A), 0x00);
     assert!(cpu.flags.c);
@@ -475,10 +438,7 @@ fn add_carry8_imm_half_carry() {
     cpu.regs.set8(Reg8::A, 0x0F);
     cpu.flags.c = true;
 
-    cpu.execute_micro_op(MicroOp::AddCarry8Imm {
-        dst: (Reg8::A),
-        addr: (0x00),
-    });
+    cpu.execute_micro_op(MicroOp::AddCarry8Imm { dst: (Reg8::A) });
 
     assert_eq!(cpu.regs.get8(Reg8::A), 0x10);
     assert!(cpu.flags.h);
@@ -617,10 +577,7 @@ fn sub_carry8_imm_basic() {
     cpu.regs.set8(Reg8::A, 0x03);
     cpu.flags.c = false;
 
-    cpu.execute_micro_op(MicroOp::SubCarry8Imm {
-        dst: (Reg8::A),
-        addr: (0x01),
-    });
+    cpu.execute_micro_op(MicroOp::SubCarry8Imm { dst: (Reg8::A) });
 
     assert_eq!(cpu.regs.get8(Reg8::A), 0x02);
     assert!(!cpu.flags.c);
@@ -635,10 +592,7 @@ fn sub_carry8_imm_with_carry() {
     cpu.regs.set8(Reg8::A, 0x01);
     cpu.flags.c = true;
 
-    cpu.execute_micro_op(MicroOp::SubCarry8Imm {
-        dst: (Reg8::A),
-        addr: (0x00),
-    });
+    cpu.execute_micro_op(MicroOp::SubCarry8Imm { dst: (Reg8::A) });
 
     assert_eq!(cpu.regs.get8(Reg8::A), 0x00);
     assert!(!cpu.flags.c);
@@ -652,10 +606,7 @@ fn sub_carry8_imm_half_carry() {
     cpu.regs.set8(Reg8::A, 0x10);
     cpu.flags.c = true;
 
-    cpu.execute_micro_op(MicroOp::SubCarry8Imm {
-        dst: (Reg8::A),
-        addr: (0x00),
-    });
+    cpu.execute_micro_op(MicroOp::SubCarry8Imm { dst: (Reg8::A) });
 
     assert_eq!(cpu.regs.get8(Reg8::A), 0x0F);
     assert!(cpu.flags.h);
@@ -746,10 +697,7 @@ fn xor_reg8_imm_basic() {
 
     cpu.regs.set8(Reg8::A, 0b1010_1010);
 
-    cpu.execute_micro_op(MicroOp::XorReg8Imm {
-        dst: (Reg8::A),
-        addr: (0b1100_1100),
-    });
+    cpu.execute_micro_op(MicroOp::XorReg8Imm { dst: (Reg8::A) });
 
     assert_eq!(cpu.regs.get8(Reg8::A), 0b0110_0110);
     assert!(!cpu.flags.z);
@@ -764,10 +712,7 @@ fn xor_reg8_imm_result_zero() {
 
     cpu.regs.set8(Reg8::A, 0b1010_1010);
 
-    cpu.execute_micro_op(MicroOp::XorReg8Imm {
-        dst: (Reg8::A),
-        addr: (0b1010_1010),
-    });
+    cpu.execute_micro_op(MicroOp::XorReg8Imm { dst: (Reg8::A) });
 
     assert_eq!(cpu.regs.get8(Reg8::A), 0);
     assert!(cpu.flags.z);
@@ -859,10 +804,7 @@ fn cp_reg8_imm_basic() {
     let mut cpu = setup_cpu();
 
     cpu.regs.set8(Reg8::A, 0x3C);
-    cpu.execute_micro_op(MicroOp::CpReg8Imm {
-        dst: (Reg8::A),
-        addr: (0x2F),
-    });
+    cpu.execute_micro_op(MicroOp::CpReg8Imm { dst: (Reg8::A) });
 
     assert_eq!(cpu.regs.get8(Reg8::A), 0x3C);
     assert!(!cpu.flags.z);
@@ -876,10 +818,7 @@ fn cp_reg8_imm_zero_and_carry() {
     let mut cpu = setup_cpu();
 
     cpu.regs.set8(Reg8::A, 0x10);
-    cpu.execute_micro_op(MicroOp::CpReg8Imm {
-        dst: (Reg8::A),
-        addr: (0x20),
-    });
+    cpu.execute_micro_op(MicroOp::CpReg8Imm { dst: (Reg8::A) });
 
     assert_eq!(cpu.regs.get8(Reg8::A), 0x10);
     assert!(!cpu.flags.z);
@@ -973,10 +912,7 @@ fn or_reg8_imm_basic() {
 
     cpu.regs.set8(Reg8::A, 0b1010_0001);
 
-    cpu.execute_micro_op(MicroOp::OrReg8Imm {
-        dst: Reg8::A,
-        addr: 0b0101_0010,
-    });
+    cpu.execute_micro_op(MicroOp::OrReg8Imm { dst: Reg8::A });
 
     assert_eq!(cpu.regs.get8(Reg8::A), 0b1111_0011);
     assert!(!cpu.flags.z);
@@ -991,10 +927,7 @@ fn or_reg8_imm_zero_flag() {
 
     cpu.regs.set8(Reg8::A, 0x00);
 
-    cpu.execute_micro_op(MicroOp::OrReg8Imm {
-        dst: (Reg8::A),
-        addr: (0x00),
-    });
+    cpu.execute_micro_op(MicroOp::OrReg8Imm { dst: (Reg8::A) });
 
     assert_eq!(cpu.regs.get8(Reg8::A), 0x00);
     assert!(cpu.flags.z);
@@ -1089,10 +1022,7 @@ fn and_reg8_imm_basic() {
 
     cpu.regs.set8(Reg8::A, 0b1100_1010);
 
-    cpu.execute_micro_op(MicroOp::AndReg8Imm {
-        dst: Reg8::A,
-        addr: 0b1010_1111,
-    });
+    cpu.execute_micro_op(MicroOp::AndReg8Imm { dst: Reg8::A });
 
     assert_eq!(cpu.regs.get8(Reg8::A), 0b1000_1010);
     assert!(!cpu.flags.z);
@@ -1107,10 +1037,7 @@ fn and_reg8_imm_zero_flag() {
 
     cpu.regs.set8(Reg8::A, 0b0000_1010);
 
-    cpu.execute_micro_op(MicroOp::AndReg8Imm {
-        dst: Reg8::A,
-        addr: 0b0000_0101,
-    });
+    cpu.execute_micro_op(MicroOp::AndReg8Imm { dst: Reg8::A });
 
     assert_eq!(cpu.regs.get8(Reg8::A), 0b0000_0000);
     assert!(cpu.flags.z);

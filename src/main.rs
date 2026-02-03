@@ -5,12 +5,15 @@ mod cpu;
 mod interconnect;
 mod ppu;
 
-use std::io::Result;
 //use sdl2::event::Event;
 //use sdl2::keyboard::Keycode;
+use std::io::Result;
+
+use std::time::{Duration, Instant};
 
 use crate::cart::Cart;
 //use crate::ppu::{Ppu, init_sdl};
+use crate::ppu::PpuMode;
 
 fn main() -> Result<()> {
     let mut cart = cart::Cart::new();
@@ -18,7 +21,16 @@ fn main() -> Result<()> {
     cart.filename = "/home/shanesopel/rust/FerrisBoy/roms/dmg-acid2.gb".to_string();
     cart.cart_load()?;
 
+    println!(
+        "Cart ROM[0x100..0x110] = {:02X?}",
+        &cart.rom_data[0x100..0x110]
+    );
+
     let inter = interconnect::Interconnect::new(cart.rom_data);
+    println!(
+        "inter ROM[0x0100..0x0110]: {:02X?}",
+        &inter.rom[0x0100..0x0110]
+    );
 
     if let Some(header) = &cart.rom_head {
         let type2 = Cart::cart_type_name(header.type_val);
@@ -38,47 +50,59 @@ fn main() -> Result<()> {
     }
 
     let mut cpu = cpu::Cpu::new(inter);
-    let mut ppu = ppu::Ppu::new(cpu.inter.clone());
+    let mut ppu = ppu::Ppu::new();
 
-    let sdl_context = sdl2::init().unwrap();
-    let video_subsystem = sdl_context.video().unwrap();
-    let window = video_subsystem
+    println!("RESET PC = {:04X}", cpu.regs.pc);
+
+    let sdl = sdl2::init().unwrap();
+    let video = sdl.video().unwrap();
+
+    let window = video
         .window("FerrisBoy", 160 * 4, 144 * 4)
         .position_centered()
         .build()
         .unwrap();
-    let mut canvas = window.into_canvas().build().unwrap();
-    let mut event_pump = sdl_context.event_pump().unwrap();
 
-    let mut last_cpu_cycles = cpu.cycles;
+    let mut canvas = window.into_canvas().accelerated().build().unwrap();
+    let frame_duration = Duration::from_micros(16_666);
+    let mut last_frame = Instant::now();
+
+    cpu.inter.write_byte(0xFF40, 0x91);
+
+    for y in 0..32 * 32 {
+        cpu.inter.write_byte(0x9800 + y as u16, (y % 4) as u8);
+    }
+
+    for t in 0..4 {
+        for row in 0..8 {
+            let lo: u8 = if row % 2 == 0 { 0xFF } else { 0x00 };
+            let hi: u8 = if row % 2 == 1 { 0xFF } else { 0x00 };
+            cpu.inter.write_byte(0x8000 + t * 16 + row * 2, lo);
+            cpu.inter.write_byte(0x8000 + t * 16 + row * 2 + 1, hi);
+        }
+    }
+
+    cpu.inter.write_byte(0xFF40, 0x91);
 
     loop {
-        for event in event_pump.poll_iter() {
-            use sdl2::event::Event;
-            use sdl2::keyboard::Keycode;
-            if matches!(
-                event,
-                Event::Quit { .. }
-                    | Event::KeyDown {
-                        keycode: Some(Keycode::Escape),
-                        ..
-                    }
-            ) {
-                break;
-            }
+        let mut cycles_this_frame = 0;
+        while cycles_this_frame < 69905 {
+            let cpu_cycles = cpu.step();
+            cycles_this_frame += cpu_cycles;
+
+            ppu.step(cpu_cycles * 4, &mut cpu.inter);
+
+            // println!("Scanline: {}", ppu.scanline);
         }
 
-        // Step CPU
-        cpu.step();
+        if matches!(ppu.mode, PpuMode::VBlank) {
+            ppu.draw(&mut canvas);
+        }
 
-        // Calculate cycles since last CPU step
-        let delta_cycles = cpu.cycles - last_cpu_cycles;
-        last_cpu_cycles = cpu.cycles;
-
-        // Step PPU
-        ppu.step(delta_cycles * 4); // GB PPU is 4x CPU cycles
-
-        // Draw framebuffer
-        ppu.draw(&mut canvas);
+        let now = Instant::now();
+        if let Some(remaining) = frame_duration.checked_sub(now - last_frame) {
+            std::thread::sleep(remaining);
+        }
+        last_frame = Instant::now();
     }
 }

@@ -15,7 +15,7 @@ pub enum DecodeFlow {
     NoImm,
     Imm8,
     Imm16,
-    //Step,
+    CbPrefix,
 }
 
 enum CpuState {
@@ -25,6 +25,7 @@ enum CpuState {
     FetchImm16Hi,
     ExecuteMicroOp,
     Decode,
+    FetchCbOpcode,
 }
 
 pub struct Cpu {
@@ -111,11 +112,18 @@ impl Cpu {
                     );
                 }
 
+                assert!(
+                    self.micro_ops.is_empty(),
+                    "Fetched opcode while micro-ops still pending"
+                );
+
                 self.regs.pc = self.regs.pc.wrapping_add(1);
                 self.state = CpuState::Decode;
             }
 
             CpuState::Decode => {
+                let pc_before = self.regs.get16(Reg16::PC);
+
                 let (ops, flow, cycles) = self.decode(self.opcode);
 
                 if CPU_TRACE {
@@ -129,24 +137,37 @@ impl Cpu {
                     );
                 }
 
-                self.cycles += cycles as u64;
-                total_cycles += cycles as u64;
                 self.micro_ops = ops.into();
 
                 self.state = match flow {
                     DecodeFlow::NoImm => CpuState::ExecuteMicroOp,
                     DecodeFlow::Imm8 => CpuState::FetchImm8,
                     DecodeFlow::Imm16 => CpuState::FetchImm16Lo,
+                    DecodeFlow::CbPrefix => CpuState::FetchCbOpcode,
                 };
+
+                debug_assert!(
+                    matches!(flow, DecodeFlow::NoImm) || self.regs.get16(Reg16::PC) == pc_before,
+                    "BAD PC BUMP in decode: {:02X}",
+                    self.opcode
+                );
             }
 
             CpuState::FetchImm8 => {
-                self.imm8 = self.inter.read_byte(self.regs.pc);
-
-                if CPU_TRACE {
-                    println!("[IMM8  ] PC={:04X} VALUE={:02X}", self.regs.pc, self.imm8);
+                if let Some(op) = self.micro_ops.front() {
+                    match op {
+                        MicroOp::JumpRelative | MicroOp::JumpRelativeIf { .. } => {
+                            self.imm8 = self.inter.read_byte(self.regs.pc);
+                            if CPU_TRACE {
+                                println!(
+                                    "[IMM8  ] PC={:04X} VALUE={:02X}",
+                                    self.regs.pc, self.imm8
+                                );
+                            }
+                        }
+                        _ => {}
+                    }
                 }
-
                 self.regs.pc = self.regs.pc.wrapping_add(1);
                 self.state = CpuState::ExecuteMicroOp;
             }
@@ -178,6 +199,25 @@ impl Cpu {
                 self.state = CpuState::ExecuteMicroOp;
             }
 
+            CpuState::FetchCbOpcode => {
+                let cb_opcode = self.fetch_byte();
+                if CPU_TRACE {
+                    println!(
+                        "[CBFETCH] PC={:04X} CB OPCODE={:02X}",
+                        self.regs.pc, cb_opcode
+                    );
+                }
+                self.regs.pc = self.regs.pc.wrapping_add(1);
+
+                let (ops, flow, cycles) = self.cb_decode(cb_opcode);
+
+                self.micro_ops = ops.into();
+                self.cycles += cycles as u64;
+                total_cycles += cycles as u64;
+
+                self.state = CpuState::ExecuteMicroOp;
+            }
+
             CpuState::ExecuteMicroOp => {
                 if let Some(op) = self.micro_ops.pop_front() {
                     if CPU_TRACE {
@@ -192,6 +232,8 @@ impl Cpu {
                 }
             }
         }
+
+        self.cycles = self.cycles.wrapping_add(total_cycles);
 
         total_cycles
     }
@@ -312,12 +354,11 @@ impl Cpu {
         (micro_ops, DecodeFlow::NoImm, cycles)
     }
 
-    pub fn decode(&mut self, _opcode: u8) -> (Vec<MicroOp>, DecodeFlow, u8) {
-        let opcode = self.fetch_byte();
+    pub fn decode(&mut self, opcode: u8) -> (Vec<MicroOp>, DecodeFlow, u8) {
+        println!("DECODING OPCODE {:02X}", opcode);
 
         if opcode == 0xCB {
-            let cb_opcode = self.fetch_byte();
-            return self.cb_decode(cb_opcode);
+            return (vec![], DecodeFlow::CbPrefix, 4);
         }
 
         match opcode {
@@ -424,7 +465,14 @@ impl Cpu {
                 12,
             ),
 
-            0x12 => (vec![MicroOp::LdMemFromA], DecodeFlow::Imm16, 8),
+            0x12 => (
+                vec![MicroOp::LdMemFromReg8 {
+                    addr: Reg16::DE,
+                    src: Reg8::A,
+                }],
+                DecodeFlow::NoImm,
+                8,
+            ),
 
             0x13 => (
                 vec![MicroOp::IncReg16 { reg: Reg16::DE }],
@@ -2313,7 +2361,10 @@ impl Cpu {
 
             MicroOp::DecReg16 { reg } => {
                 let value = self.regs.get16(reg);
-                self.regs.set16(reg, value.wrapping_sub(1));
+                let result = value.wrapping_sub(1);
+                self.regs.set16(reg, result);
+
+                println!("DEC BC: {:04X} → {:04X}", value, result);
             }
 
             MicroOp::IncRegHl => {
@@ -2744,17 +2795,19 @@ impl Cpu {
             MicroOp::JumpRelative => {
                 let offset = self.imm8 as i8 as i16;
                 let pc = self.regs.get16(Reg16::PC);
-                self.regs.set16(Reg16::PC, pc.wrapping_add(offset as u16));
+                self.regs.set16(Reg16::PC, pc.wrapping_add_signed(offset));
                 self.cycles += 12;
             }
 
             MicroOp::JumpRelativeIf { flag, expected } => {
                 if self.flags.get_flag(flag) == expected {
-                    let offset = self.imm8 as i8 as i16;
                     let pc = self.regs.get16(Reg16::PC);
-                    self.regs.set16(Reg16::PC, pc.wrapping_add(offset as u16));
+                    let offset = self.imm8 as i8 as i16;
+                    let new_pc = pc.wrapping_add(2).wrapping_add(offset as u16); // PC after JR + signed offset
+                    self.regs.set16(Reg16::PC, new_pc);
                     self.cycles += 12;
                 } else {
+                    self.regs.set16(Reg16::PC, self.regs.get16(Reg16::PC) + 2); // skip opcode + offset
                     self.cycles += 8;
                 }
             }

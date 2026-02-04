@@ -26,6 +26,8 @@ fn main() -> Result<()> {
         &cart.rom_data[0x100..0x110]
     );
 
+        let mut ppu = ppu::Ppu::new();
+
     let inter = interconnect::Interconnect::new(cart.rom_data);
     println!(
         "inter ROM[0x0100..0x0110]: {:02X?}",
@@ -50,7 +52,6 @@ fn main() -> Result<()> {
     }
 
     let mut cpu = cpu::Cpu::new(inter);
-    let mut ppu = ppu::Ppu::new();
 
     println!("RESET PC = {:04X}", cpu.regs.pc);
 
@@ -66,23 +67,6 @@ fn main() -> Result<()> {
     let mut canvas = window.into_canvas().accelerated().build().unwrap();
     let frame_duration = Duration::from_micros(16_666);
     let mut last_frame = Instant::now();
-
-    cpu.inter.write_byte(0xFF40, 0x91);
-
-    for y in 0..32 * 32 {
-        cpu.inter.write_byte(0x9800 + y as u16, (y % 4) as u8);
-    }
-
-    for t in 0..4 {
-        for row in 0..8 {
-            let lo: u8 = if row % 2 == 0 { 0xFF } else { 0x00 };
-            let hi: u8 = if row % 2 == 1 { 0xFF } else { 0x00 };
-            cpu.inter.write_byte(0x8000 + t * 16 + row * 2, lo);
-            cpu.inter.write_byte(0x8000 + t * 16 + row * 2 + 1, hi);
-        }
-    }
-
-    cpu.inter.write_byte(0xFF40, 0x91);
 
     loop {
         let mut cycles_this_frame = 0;

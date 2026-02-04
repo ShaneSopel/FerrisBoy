@@ -11,6 +11,8 @@
 //0xFF80 - 0xFFFE	High RAM (HRAM) (zero page)
 //FFFF	FFFF	Interrupt Enable register (IE)
 
+
+
 //pub const LCDC: u16 = 0xFF40;
 pub const STAT: u16 = 0xFF41;
 //pub const SCY: u16 = 0xFF42;
@@ -18,92 +20,101 @@ pub const STAT: u16 = 0xFF41;
 pub const LY: u16 = 0xFF44;
 //pub const LYC: u16 = 0xFF45;
 
-#[derive(Debug, Clone)]
 pub struct Interconnect {
-    pub rom: [u8; 0x8000], // Cartridge ROM
-    pub vram: [u8; 0x2000],
-    pub wram: [u8; 0x2000],
-    pub oam: [u8; 0xA0],
-    pub io: [u8; 0x80],
-    pub hram: [u8; 0x7F],
-    pub ie_register: u8,
-    pub boot_enabled: bool,
+    pub memory: Vec<u8>, // 64KB
 }
 
 impl Interconnect {
-    pub fn new(cart_rom: Vec<u8>) -> Self {
-        let mut inter = Self {
-            //boot_rom: [0; 0x100],
-            rom: [0; 0x8000],
-            vram: [0; 0x2000],
-            wram: [0; 0x2000],
-            oam: [0; 0xA0],
-            io: [0; 0x80],
-            hram: [0; 0x7F],
-            ie_register: 0,
-            boot_enabled: true,
-        };
-
-        // Load cartridge ROM (truncate if larger than 32KB)
-        let rom_len = usize::min(cart_rom.len(), 0x8000);
-        inter.rom[..rom_len].copy_from_slice(&cart_rom[..rom_len]);
-
-        inter
+    pub fn new(memory: Vec<u8>) -> Self {
+        Self { memory }
     }
 
     pub fn read_byte(&self, addr: u16) -> u8 {
         match addr {
-            0x0000..=0x7FFF => self.rom[addr as usize],
-            0x8000..=0x9FFF => self.vram[(addr - 0x8000) as usize],
-            0xC000..=0xDFFF => self.wram[(addr - 0xC000) as usize],
-            0xFE00..=0xFE9F => self.oam[(addr - 0xFE00) as usize],
-            0xFF00..=0xFF7F => self.io[(addr - 0xFF00) as usize],
-            0xFF80..=0xFFFE => self.hram[(addr - 0xFF80) as usize],
-            0xFFFF => self.ie_register,
+            // Boot ROM, ROM banks
+            0x0000..=0x7FFF => self.memory[addr as usize],
+
+            // VRAM
+            0x8000..=0x9FFF => self.memory[addr as usize],
+
+            // External RAM (cartridge)
+            0xA000..=0xBFFF => self.memory[addr as usize],
+
+            // Work RAM
+            0xC000..=0xDFFF => self.memory[addr as usize],
+
+            // Echo RAM (mirror of C000-DDFF)
+            0xE000..=0xFDFF => self.memory[(addr - 0x2000) as usize],
+
+            // OAM
+            0xFE00..=0xFE9F => self.memory[addr as usize],
+
+            // Unusable area
+            0xFEA0..=0xFEFF => 0xFF, // returns 0xFF
+
+            // I/O registers
+            0xFF00..=0xFF7F => self.read_io(addr),
+
+            // High RAM
+            0xFF80..=0xFFFE => self.memory[addr as usize],
+
+            // Interrupt Enable
+            0xFFFF => self.memory[0xFFFF],
+
             _ => 0xFF,
         }
     }
 
     pub fn write_byte(&mut self, addr: u16, value: u8) {
         match addr {
-            // Writes to boot enable register
-            0xFF50 if value == 1 => self.boot_enabled = false,
+            // ROM is read-only
+            0x0000..=0x7FFF => {}
 
-            0x0000..=0x7FFF => self.rom[addr as usize] = value, // usually MBC handles this
-            0x8000..=0x9FFF => self.vram[(addr - 0x8000) as usize] = value,
-            0xC000..=0xDFFF => self.wram[(addr - 0xC000) as usize] = value,
-            0xFE00..=0xFE9F => self.oam[(addr - 0xFE00) as usize] = value,
-            0xFF00..=0xFF7F => self.io[(addr - 0xFF00) as usize] = value,
-            0xFF80..=0xFFFE => self.hram[(addr - 0xFF80) as usize] = value,
-            0xFFFF => self.ie_register = value,
-            _ => (),
+            // VRAM
+            0x8000..=0x9FFF => self.memory[addr as usize] = value,
+
+            // External RAM
+            0xA000..=0xBFFF => self.memory[addr as usize] = value,
+
+            // Work RAM
+            0xC000..=0xDFFF => self.memory[addr as usize] = value,
+
+            // Echo RAM
+            0xE000..=0xFDFF => self.memory[(addr - 0x2000) as usize] = value,
+
+            // OAM
+            0xFE00..=0xFE9F => self.memory[addr as usize] = value,
+
+            // Unusable
+            0xFEA0..=0xFEFF => {}
+
+            // I/O
+            0xFF00..=0xFF7F => self.write_io(addr, value),
+
+            // High RAM
+            0xFF80..=0xFFFE => self.memory[addr as usize] = value,
+
+            // Interrupt Enable
+            0xFFFF => self.memory[0xFFFF] = value,
+
+            _ => {}
         }
     }
 
-    pub fn write_ly(&mut self, value: u8) {
-        self.io[(LY - 0xFF00) as usize] = value;
+        fn read_io(&self, addr: u16) -> u8 {
+        match addr {
+            0xFF04 => 0,       // DIV counter, placeholder
+            0xFF44 => 0,       // LY register, read-only
+            _ => self.memory[addr as usize], // other IO
+        }
     }
 
-    /*
-        pub fn read_ly(&self) -> u8 {
-            self.io[(LY - 0xFF00) as usize]
+    fn write_io(&mut self, addr: u16, value: u8) {
+        match addr {
+            0xFF04 => self.memory[0xFF04] = 0, // writing resets DIV
+            0xFF44 => {}                        // LY read-only
+            _ => self.memory[addr as usize] = value,
         }
-
-        pub fn update_lyc(&mut self) {
-            let ly = self.read_ly();
-            let lyc = self.io[(LYC - 0xFF00) as usize];
-
-            let stat = &mut self.io[(STAT - 0xFF00) as usize];
-
-            if ly == lyc {
-                *stat |= 0x04;
-            } else {
-                *stat &= !0x04;
-            }
-        }
-    */
-    pub fn set_stat_mode(&mut self, mode: u8) {
-        let stat = &mut self.io[(STAT - 0xFF00) as usize];
-        *stat = (*stat & 0xFC) | (mode & 0x03);
     }
 }
+

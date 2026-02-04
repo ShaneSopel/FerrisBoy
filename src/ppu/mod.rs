@@ -11,7 +11,7 @@ pub enum PpuMode {
     HBlank,
     VBlank,
     Oam,
-    // Vram,
+    Vram,
 }
 
 #[derive(Debug, Clone)]
@@ -48,9 +48,10 @@ impl Ppu {
 
         while self.cycles >= 1 {
             let mode_duration = match self.mode {
-                PpuMode::Oam => 80,     // OAM access
-                PpuMode::HBlank => 204, // HBlank after render
-                PpuMode::VBlank => 456, // Each VBlank line
+                PpuMode::Oam => 80,
+                PpuMode::Vram => 172,
+                PpuMode::HBlank => 204,
+                PpuMode::VBlank => 456,
             };
 
             if self.cycles < mode_duration {
@@ -61,7 +62,11 @@ impl Ppu {
 
             match self.mode {
                 PpuMode::Oam => {
-                    // Move to VRAM render mode (we’ll render during VRAM)
+                    self.render_scanline(inter);
+                    self.mode = PpuMode::HBlank;
+                }
+
+                PpuMode::Vram => {
                     self.render_scanline(inter);
                     self.mode = PpuMode::HBlank;
                 }
@@ -70,12 +75,10 @@ impl Ppu {
                     inter.write_ly(self.scanline as u8);
 
                     if self.scanline == 144 {
-                        // Enter VBlank
                         self.mode = PpuMode::VBlank;
                         let iflag = inter.read_byte(0xFF0F);
                         inter.write_byte(0xFF0F, iflag | 0x01); // Request VBlank interrupt
                     } else {
-                        // Start next line OAM
                         self.mode = PpuMode::Oam;
                     }
                 }
@@ -94,8 +97,9 @@ impl Ppu {
             // Update STAT register
             let stat_mode_val = match self.mode {
                 PpuMode::HBlank => 0,
-                PpuMode::VBlank => 1,
-                PpuMode::Oam => 2,
+                PpuMode::Vram => 1,
+                PpuMode::VBlank => 2,
+                PpuMode::Oam => 3,
             };
             inter.set_stat_mode(stat_mode_val);
         }
@@ -132,6 +136,10 @@ impl Ppu {
             } else {
                 (tile_id as i8 as i16) + 128
             };
+
+            if self.scanline == 0 && x == 0 {
+                println!("Tile ID {:02X} from map {:04X}", tile_id, bg_map_base);
+            }
 
             let tile_addr = tile_data_base + (tile_index as u16 * 16);
 

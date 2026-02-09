@@ -85,7 +85,7 @@ pub enum Reg8 {
     C,
     D,
     E,
-    // F,
+    F,
     H,
     L,
 }
@@ -107,7 +107,7 @@ impl Registers {
             Reg8::C => self.c,
             Reg8::D => self.d,
             Reg8::E => self.e,
-            //Reg8::F => self.f.to_u8(),
+            Reg8::F => self.f.to_u8(),
             Reg8::H => self.h,
             Reg8::L => self.l,
         }
@@ -120,7 +120,7 @@ impl Registers {
             Reg8::C => self.c = val,
             Reg8::D => self.d = val,
             Reg8::E => self.e = val,
-            //Reg8::F => self.f = Flags::from_u8(val),
+            Reg8::F => self.f = Flags::from_u8(val),
             Reg8::H => self.h = val,
             Reg8::L => self.l = val,
         }

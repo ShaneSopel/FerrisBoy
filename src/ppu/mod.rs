@@ -38,15 +38,16 @@ impl Ppu {
 
         let lcdc = inter.read_byte(0xFF40);
         if lcdc & 0x80 == 0 {
-            // LCD disabled → reset scanline
+            // LCD disabled
             self.cycles = 0;
             self.scanline = 0;
-            inter.write_ly(0);
+            Self::write_ly(inter, 0);
             self.mode = PpuMode::HBlank;
+            Self::set_stat_mode(inter, 0);
             return;
         }
 
-        while self.cycles >= 1 {
+        while self.cycles > 0 {
             let mode_duration = match self.mode {
                 PpuMode::Oam => 80,
                 PpuMode::Vram => 172,
@@ -62,47 +63,57 @@ impl Ppu {
 
             match self.mode {
                 PpuMode::Oam => {
-                    self.render_scanline(inter);
-                    self.mode = PpuMode::HBlank;
+                    self.mode = PpuMode::Vram;
                 }
 
                 PpuMode::Vram => {
                     self.render_scanline(inter);
                     self.mode = PpuMode::HBlank;
                 }
+
                 PpuMode::HBlank => {
                     self.scanline += 1;
-                    inter.write_ly(self.scanline as u8);
+                    Self::write_ly(inter, self.scanline as u8);
 
                     if self.scanline == 144 {
                         self.mode = PpuMode::VBlank;
                         let iflag = inter.read_byte(0xFF0F);
-                        inter.write_byte(0xFF0F, iflag | 0x01); // Request VBlank interrupt
+                        inter.write_byte(0xFF0F, iflag | 0x01);
                     } else {
                         self.mode = PpuMode::Oam;
                     }
                 }
+
                 PpuMode::VBlank => {
                     self.scanline += 1;
-                    inter.write_ly(self.scanline as u8);
+                    Self::write_ly(inter, self.scanline as u8);
 
                     if self.scanline > 153 {
-                        // End of VBlank, start new frame
                         self.scanline = 0;
+                        Self::write_ly(inter, 0);
                         self.mode = PpuMode::Oam;
                     }
                 }
             }
 
-            // Update STAT register
-            let stat_mode_val = match self.mode {
+            let stat_mode = match self.mode {
                 PpuMode::HBlank => 0,
                 PpuMode::Vram => 1,
                 PpuMode::VBlank => 2,
                 PpuMode::Oam => 3,
             };
-            inter.set_stat_mode(stat_mode_val);
+            Self::set_stat_mode(inter, stat_mode);
         }
+    }
+
+    fn write_ly(inter: &mut Interconnect, ly: u8) {
+        inter.write_byte(0xFF44, ly);
+    }
+
+    fn set_stat_mode(inter: &mut Interconnect, mode: u8) {
+        let stat = inter.read_byte(0xFF41);
+        let new_stat = (stat & 0b1111_1100) | (mode & 0b11);
+        inter.write_byte(0xFF41, new_stat);
     }
 
     pub fn render_scanline(&mut self, inter: &mut Interconnect) {

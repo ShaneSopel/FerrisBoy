@@ -281,6 +281,55 @@ impl Cpu {
         }
     }
 
+    /// Simple Game Boy Boot ROM emulation
+
+pub fn run_boot_rom(&mut self ) {
+    self.regs.set8(Reg8::A, 0x01);
+    self.regs.set8(Reg8::F, 0xB0); 
+    self.regs.set8(Reg8::B, 0x00);
+    self.regs.set8(Reg8::C, 0x13);
+    self.regs.set8(Reg8::D, 0x00);
+    self.regs.set8(Reg8::E, 0xD8);
+    self.regs.set8(Reg8::H, 0x01);
+    self.regs.set8(Reg8::L, 0x4D);
+
+    self.regs.set16(Reg16::SP, 0xFFFE);
+    self.regs.set16(Reg16::PC, 0x0100); // Jump to cartridge codeself.
+
+    self.inter.write_byte(0xFF05, 0x00); // TIMAself.
+    self.inter.write_byte(0xFF06, 0x00); // TMAself.
+    self.inter.write_byte(0xFF07, 0x00); // TACself.
+    self.inter.write_byte(0xFF10, 0x80); // NR10self.
+    self.inter.write_byte(0xFF11, 0xBF); // NR11self.
+    self.inter.write_byte(0xFF12, 0xF3); // NR12self.
+    self.inter.write_byte(0xFF14, 0xBF); // NR14self.
+    self.inter.write_byte(0xFF16, 0x3F); // NR21self.
+    self.inter.write_byte(0xFF17, 0x00); // NR22self.
+    self.inter.write_byte(0xFF19, 0xBF); // NR24self.
+    self.inter.write_byte(0xFF1A, 0x7F); // NR30self.
+    self.inter.write_byte(0xFF1B, 0xFF); // NR31self.
+    self.inter.write_byte(0xFF1C, 0x9F); // NR32self.
+    self.inter.write_byte(0xFF1E, 0xBF); // NR33self.
+    self.inter.write_byte(0xFF20, 0xFF); // NR41self.
+    self.inter.write_byte(0xFF21, 0x00); // NR42self.
+    self.inter.write_byte(0xFF22, 0x00); // NR43self.
+    self.inter.write_byte(0xFF23, 0xBF); // NR44self.
+    self.inter.write_byte(0xFF24, 0x77); // NR50self.
+    self.inter.write_byte(0xFF25, 0xF3); // NR51self.
+    self.inter.write_byte(0xFF26, 0xF1); // NR52 (sound on)self.
+    self.inter.write_byte(0xFF40, 0x91); // LCDCself.
+    self.inter.write_byte(0xFF42, 0x00); // SCYself.
+    self.inter.write_byte(0xFF43, 0x00); // SCXself.
+    self.inter.write_byte(0xFF45, 0x00); // LYCself.
+    self.inter.write_byte(0xFF47, 0xFC); // BGPself.
+    self.inter.write_byte(0xFF48, 0xFF); // OBP0self.
+    self.inter.write_byte(0xFF49, 0xFF); // OBP1
+    self.inter.write_byte(0xFF4A, 0x00); // WY
+    self.inter.write_byte(0xFF4B, 0x00); // WX               
+
+    // After this, the CPU is ready to execute cartridge code at 0x0100
+}
+
     pub fn cb_decode(&self, opcode: u8) -> (Vec<MicroOp>, DecodeFlow, u8) {
         let reg_index = opcode & 0x07;
         let bit = (opcode >> 3) & 0x07;
@@ -356,6 +405,8 @@ impl Cpu {
 
     pub fn decode(&mut self, opcode: u8) -> (Vec<MicroOp>, DecodeFlow, u8) {
         println!("DECODING OPCODE {:02X}", opcode);
+
+        println!("JP (HL) with HL={:04X}", self.regs.get16(Reg16::HL));
 
         if opcode == 0xCB {
             return (vec![], DecodeFlow::CbPrefix, 4);
@@ -2122,7 +2173,7 @@ impl Cpu {
 
             0xE8 => (vec![MicroOp::AddImmToSP], DecodeFlow::Imm8, 8),
 
-            0xE9 => (vec![MicroOp::JumpHL], DecodeFlow::Imm8, 0),
+            0xE9 => (vec![MicroOp::JumpHL], DecodeFlow::NoImm, 0),
 
             0xEA => (vec![MicroOp::LdMemAbsFromA], DecodeFlow::Imm16, 16),
             0xEE => (
@@ -2228,6 +2279,7 @@ impl Cpu {
             }
 
             MicroOp::LdReg16FromImm { dst } => {
+                    println!("LD {:?}, {:04X}", dst, self.imm16);
                 self.regs.set16(dst, self.imm16);
             }
 
@@ -2292,6 +2344,7 @@ impl Cpu {
             }
 
             MicroOp::LdReg16FromMem { dst, src } => {
+
                 let addr = self.regs.get16(src);
                 let lo = self.inter.read_byte(addr) as u16;
                 let hi = self.inter.read_byte(addr.wrapping_add(1)) as u16;
@@ -2814,10 +2867,13 @@ impl Cpu {
 
             MicroOp::JumpHL => {
                 let hl = self.regs.get16(Reg16::HL);
+                if hl >= 0xFF00 {
+        println!("JP (HL) tried to jump to IO {:04X}, ignoring", hl);
+    } else {
                 self.regs.set16(Reg16::PC, hl);
                 self.cycles += 4;
             }
-
+        }
             MicroOp::CallAbsolute => {
                 let pc = self.regs.get16(Reg16::PC);
                 self.push_16bit(pc);

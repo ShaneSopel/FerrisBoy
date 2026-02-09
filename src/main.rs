@@ -15,6 +15,15 @@ use crate::cart::Cart;
 //use crate::ppu::{Ppu, init_sdl};
 use crate::ppu::PpuMode;
 
+use crate::interconnect::Interconnect;
+
+use crate::cpu::Cpu;
+
+
+use crate::cpu::registers::{Reg8,Reg16};
+
+
+
 fn main() -> Result<()> {
     let mut cart = cart::Cart::new();
 
@@ -26,13 +35,13 @@ fn main() -> Result<()> {
         &cart.rom_data[0x100..0x110]
     );
 
-        let mut ppu = ppu::Ppu::new();
+    let rom_slice = &cart.rom_data[0x4808..0x480A];
+println!("{:02X?}", rom_slice);
 
-    let inter = interconnect::Interconnect::new(cart.rom_data);
-    println!(
-        "inter ROM[0x0100..0x0110]: {:02X?}",
-        &inter.rom[0x0100..0x0110]
-    );
+
+    let mut ppu = ppu::Ppu::new();
+
+    let mut inter = interconnect::Interconnect::new(cart.rom_data);
 
     if let Some(header) = &cart.rom_head {
         let type2 = Cart::cart_type_name(header.type_val);
@@ -49,11 +58,14 @@ fn main() -> Result<()> {
         println!("Lic Code: {:02x} {} ", header.lic_code, lic);
         println!("Rom Version: {}", header.version);
         println!("Global Checksum: {:04X}", header.global_checksum);
+
     }
 
     let mut cpu = cpu::Cpu::new(inter);
 
     println!("RESET PC = {:04X}", cpu.regs.pc);
+
+    cpu.run_boot_rom();
 
     let sdl = sdl2::init().unwrap();
     let video = sdl.video().unwrap();

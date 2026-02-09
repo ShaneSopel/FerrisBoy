@@ -11,8 +11,6 @@
 //0xFF80 - 0xFFFE	High RAM (HRAM) (zero page)
 //FFFF	FFFF	Interrupt Enable register (IE)
 
-
-
 //pub const LCDC: u16 = 0xFF40;
 pub const STAT: u16 = 0xFF41;
 //pub const SCY: u16 = 0xFF42;
@@ -21,100 +19,57 @@ pub const LY: u16 = 0xFF44;
 //pub const LYC: u16 = 0xFF45;
 
 pub struct Interconnect {
-    pub memory: Vec<u8>, // 64KB
+    rom: Vec<u8>,
+    ram: Vec<u8>,
 }
 
 impl Interconnect {
-    pub fn new(memory: Vec<u8>) -> Self {
-        Self { memory }
+    pub fn new(rom: Vec<u8>) -> Self {
+
+        let mut ram = vec![0; 0x10000];
+        ram[0xFF40] = 0x91; // LCDC
+        ram[0xFF41] = 0x85; // STAT
+        ram[0xFF42] = 0x00; // SCY
+        ram[0xFF43] = 0x00; // SCX
+        ram[0xFF44] = 0x00; // LY
+        ram[0xFF47] = 0xFC; // BGP
+        ram[0xFF0F] = 0xE1; // IF
+
+        Self { rom, ram }
     }
 
-    pub fn read_byte(&self, addr: u16) -> u8 {
-        match addr {
-            // Boot ROM, ROM banks
-            0x0000..=0x7FFF => self.memory[addr as usize],
-
-            // VRAM
-            0x8000..=0x9FFF => self.memory[addr as usize],
-
-            // External RAM (cartridge)
-            0xA000..=0xBFFF => self.memory[addr as usize],
-
-            // Work RAM
-            0xC000..=0xDFFF => self.memory[addr as usize],
-
-            // Echo RAM (mirror of C000-DDFF)
-            0xE000..=0xFDFF => self.memory[(addr - 0x2000) as usize],
-
-            // OAM
-            0xFE00..=0xFE9F => self.memory[addr as usize],
-
-            // Unusable area
-            0xFEA0..=0xFEFF => 0xFF, // returns 0xFF
-
-            // I/O registers
-            0xFF00..=0xFF7F => self.read_io(addr),
-
-            // High RAM
-            0xFF80..=0xFFFE => self.memory[addr as usize],
-
-            // Interrupt Enable
-            0xFFFF => self.memory[0xFFFF],
-
-            _ => 0xFF,
-        }
+pub fn read_byte(&self, addr: u16) -> u8 {
+    match addr {
+        0x0000..=0x7FFF => self.rom[addr as usize],
+         0x8000..=0xFDFF => self.ram[addr as usize],
+        0xFE00..=0xFFFF => 0x00,
+        _ => self.ram[addr as usize],
     }
+}
 
-    pub fn write_byte(&mut self, addr: u16, value: u8) {
-        match addr {
-            // ROM is read-only
-            0x0000..=0x7FFF => {}
 
-            // VRAM
-            0x8000..=0x9FFF => self.memory[addr as usize] = value,
-
-            // External RAM
-            0xA000..=0xBFFF => self.memory[addr as usize] = value,
-
-            // Work RAM
-            0xC000..=0xDFFF => self.memory[addr as usize] = value,
-
-            // Echo RAM
-            0xE000..=0xFDFF => self.memory[(addr - 0x2000) as usize] = value,
-
-            // OAM
-            0xFE00..=0xFE9F => self.memory[addr as usize] = value,
-
-            // Unusable
-            0xFEA0..=0xFEFF => {}
-
-            // I/O
-            0xFF00..=0xFF7F => self.write_io(addr, value),
-
-            // High RAM
-            0xFF80..=0xFFFE => self.memory[addr as usize] = value,
-
-            // Interrupt Enable
-            0xFFFF => self.memory[0xFFFF] = value,
-
-            _ => {}
-        }
+pub fn write_byte(&mut self, addr: u16, value: u8) {
+    match addr {
+        0x0000..=0x7FFF => {} // ROM is read-only
+        _ => self.ram[addr as usize] = value,
     }
+}
 
-        fn read_io(&self, addr: u16) -> u8 {
-        match addr {
-            0xFF04 => 0,       // DIV counter, placeholder
-            0xFF44 => 0,       // LY register, read-only
-            _ => self.memory[addr as usize], // other IO
-        }
+fn read_io(&self, addr: u16) -> u8 {
+    match addr {
+        0xFF04 => self.ram[0xFF04], // DIV
+        0xFF44 => self.ram[0xFF44], // LY
+        _ => self.ram[addr as usize],
     }
+}
 
-    fn write_io(&mut self, addr: u16, value: u8) {
-        match addr {
-            0xFF04 => self.memory[0xFF04] = 0, // writing resets DIV
-            0xFF44 => {}                        // LY read-only
-            _ => self.memory[addr as usize] = value,
-        }
+fn write_io(&mut self, addr: u16, value: u8) {
+    match addr {
+        0xFF04 => self.ram[0xFF04] = 0,
+        0xFF44 => {}
+        _ => self.ram[addr as usize] = value,
     }
+}
+
 }
 
